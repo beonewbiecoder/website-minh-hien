@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chi tiết sản phẩm — Minh Hiền Hydraulics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <a href="tel:0909123456">📞 Hotline: 0909 123 456</a>
+        <a href="lien-he.html">Hệ thống cửa hàng</a>
+      </div>
+      <div class="topbar-links">
+        <span>Giao hàng toàn quốc · Tư vấn kỹ thuật miễn phí</span>
+      </div>
+    </div>
+  </div>
+  <div class="container header-main">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">MH</span>
+      <span>MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Trang chủ</a>
+      <a href="san-pham.html">Sản phẩm</a>
+      <a href="gioi-thieu.html">Giới thiệu</a>
+      <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
+      <a href="lien-he.html">Liên hệ</a>
+    </nav>
+    <div class="header-actions">
+      <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge" style="display:none">0</span>
+      </a>
+      <button class="nav-toggle" aria-label="Mở menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="section-tight">
+  <div class="container" id="pd-container">
+    <p class="muted">Đang tải sản phẩm...</p>
+  </div>
+</main>
+
+<section class="section bg-white" id="related-section" style="display:none;">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Có thể bạn cần</span>
+      <h2>Sản phẩm liên quan</h2>
+    </div>
+    <div class="product-grid" id="related-products"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>MINH HIỀN HYDRAULICS</h4>
+        <p>Chuyên cung cấp ống thủy lực, rắc co và phụ kiện thủy lực chính hãng cho máy công trình, nhà xưởng và cơ khí chế tạo.</p>
+      </div>
+      <div>
+        <h4>Danh mục</h4>
+        <ul>
+          <li><a href="san-pham.html?cat=ong-thuy-luc">Ống thủy lực</a></li>
+          <li><a href="san-pham.html?cat=rac-co">Rắc co &amp; Đầu nối</a></li>
+          <li><a href="san-pham.html">Tất cả sản phẩm</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Về chúng tôi</h4>
+        <ul>
+          <li><a href="gioi-thieu.html">Giới thiệu</a></li>
+          <li><a href="trai-nghiem.html">Trải nghiệm khách hàng</a></li>
+          <li><a href="lien-he.html">Liên hệ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Liên hệ</h4>
+        <p>Hotline: 0909 123 456<br>Email: cskh@minhhien-hydraulics.vn<br>123 Đường Công Nghiệp, P. Bình Hưng Hòa, TP.HCM</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © <span id="year"></span> Minh Hiền Hydraulics. Thông tin trên website mang tính minh họa, vui lòng liên hệ để được báo giá chính xác.
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  const product = findProduct(id);
+  const container = document.getElementById("pd-container");
+
+  if(!product){
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>Không tìm thấy sản phẩm</h3>
+        <p>Sản phẩm có thể đã ngừng kinh doanh. Vui lòng xem danh sách sản phẩm khác.</p>
+        <a href="san-pham.html" class="btn btn-primary" style="margin-top:14px;">Xem tất cả sản phẩm</a>
+      </div>`;
+    return;
+  }
+
+  const catInfo = CATEGORIES.find(c => c.slug === product.category);
+  const specsHTML = Object.entries(product.specs).map(([k,v]) => `<div><b>${k}</b><span>${v}</span></div>`).join("");
+
+  container.innerHTML = `
+    <div class="breadcrumb">
+      <a href="index.html">Trang chủ</a> / <a href="san-pham.html">Sản phẩm</a> / <a href="san-pham.html?cat=${product.category}">${catInfo ? catInfo.name : ""}</a> / ${product.name}
+    </div>
+    <div class="pd-wrap">
+      <div class="pd-gallery" style="color:var(--navy)">
+        ${product.badge ? `<span class="badge" style="position:absolute;">${product.badge}</span>` : ""}
+        ${productIcon(product.icon, 220)}
+      </div>
+      <div class="pd-info">
+        <span class="product-cat">${catInfo ? catInfo.name : ""} — ${product.size}</span>
+        <h1>${product.name}</h1>
+        <p class="muted">${product.desc}</p>
+        <div class="pd-price">${formatVND(product.price)} <small style="font-size:1rem;font-weight:500;color:var(--text-muted)">/ ${product.unit}</small></div>
+
+        <div class="pd-meta">${specsHTML}</div>
+
+        <label style="font-weight:600;font-size:.92rem;">Số lượng (${product.unit})</label>
+        <div class="qty-picker" style="margin-top:8px;">
+          <button type="button" id="qty-minus">−</button>
+          <input type="number" id="qty-input" value="1" min="1">
+          <button type="button" id="qty-plus">+</button>
+        </div>
+
+        <div class="pd-actions">
+          <button class="btn btn-primary btn-lg" id="add-to-cart-btn">Thêm vào giỏ hàng</button>
+          <a href="tel:0909123456" class="btn btn-outline btn-lg">Gọi tư vấn nhanh</a>
+        </div>
+
+        <div class="trust-row">
+          <div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Bảo hành theo tiêu chuẩn nhà sản xuất</div>
+          <div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/></svg> Giao hàng toàn quốc</div>
+          <div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg> Hỗ trợ kỹ thuật qua điện thoại</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const qtyInput = document.getElementById("qty-input");
+  document.getElementById("qty-minus").addEventListener("click", () => {
+    qtyInput.value = Math.max(1, parseInt(qtyInput.value || 1) - 1);
+  });
+  document.getElementById("qty-plus").addEventListener("click", () => {
+    qtyInput.value = parseInt(qtyInput.value || 1) + 1;
+  });
+  document.getElementById("add-to-cart-btn").addEventListener("click", () => {
+    addToCart(product.id, qtyInput.value);
+    showToast("Đã thêm vào giỏ hàng ✓");
+  });
+
+  const related = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
+  if(related.length){
+    document.getElementById("related-section").style.display = "block";
+    const relEl = document.getElementById("related-products");
+    relEl.innerHTML = related.map(productCardHTML).join("");
+    bindAddToCartButtons(relEl);
+  }
+})();
+</script>
+</body>
+</html>

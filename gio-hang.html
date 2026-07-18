@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giỏ hàng — Minh Hiền Hydraulics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <a href="tel:0909123456">📞 Hotline: 0909 123 456</a>
+        <a href="lien-he.html">Hệ thống cửa hàng</a>
+      </div>
+      <div class="topbar-links">
+        <span>Giao hàng toàn quốc · Tư vấn kỹ thuật miễn phí</span>
+      </div>
+    </div>
+  </div>
+  <div class="container header-main">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">MH</span>
+      <span>MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Trang chủ</a>
+      <a href="san-pham.html">Sản phẩm</a>
+      <a href="gioi-thieu.html">Giới thiệu</a>
+      <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
+      <a href="lien-he.html">Liên hệ</a>
+    </nav>
+    <div class="header-actions">
+      <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge" style="display:none">0</span>
+      </a>
+      <button class="nav-toggle" aria-label="Mở menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="section-tight">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Trang chủ</a> / Giỏ hàng</div>
+    <h2>Giỏ hàng của bạn</h2>
+
+    <div id="cart-content"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>MINH HIỀN HYDRAULICS</h4>
+        <p>Chuyên cung cấp ống thủy lực, rắc co và phụ kiện thủy lực chính hãng cho máy công trình, nhà xưởng và cơ khí chế tạo.</p>
+      </div>
+      <div>
+        <h4>Danh mục</h4>
+        <ul>
+          <li><a href="san-pham.html?cat=ong-thuy-luc">Ống thủy lực</a></li>
+          <li><a href="san-pham.html?cat=rac-co">Rắc co &amp; Đầu nối</a></li>
+          <li><a href="san-pham.html">Tất cả sản phẩm</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Về chúng tôi</h4>
+        <ul>
+          <li><a href="gioi-thieu.html">Giới thiệu</a></li>
+          <li><a href="trai-nghiem.html">Trải nghiệm khách hàng</a></li>
+          <li><a href="lien-he.html">Liên hệ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Liên hệ</h4>
+        <p>Hotline: 0909 123 456<br>Email: cskh@minhhien-hydraulics.vn<br>123 Đường Công Nghiệp, P. Bình Hưng Hòa, TP.HCM</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © <span id="year"></span> Minh Hiền Hydraulics. Thông tin trên website mang tính minh họa, vui lòng liên hệ để được báo giá chính xác.
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+function renderCartPage(){
+  const wrap = document.getElementById("cart-content");
+  const items = cartDetailed();
+
+  if(items.length === 0){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;color:var(--text-muted)"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <h3>Giỏ hàng đang trống</h3>
+        <p>Hãy chọn sản phẩm ống thủy lực hoặc rắc co phù hợp để thêm vào giỏ.</p>
+        <a href="san-pham.html" class="btn btn-primary" style="margin-top:10px;">Xem sản phẩm</a>
+      </div>`;
+    return;
+  }
+
+  const rows = items.map(i => `
+    <div class="cart-row" data-id="${i.product.id}">
+      <div class="thumb" style="color:var(--navy)">${productIcon(i.product.icon, 40)}</div>
+      <div>
+        <a href="san-pham-chi-tiet.html?id=${i.product.id}" class="name">${i.product.name}</a>
+        <div class="unit">${i.product.size} · ${formatVND(i.product.price)} / ${i.product.unit}</div>
+        <button type="button" class="remove-btn" data-remove="${i.product.id}">Xóa</button>
+      </div>
+      <div class="qty-picker">
+        <button type="button" data-minus="${i.product.id}">−</button>
+        <input type="number" min="1" value="${i.qty}" data-qty="${i.product.id}">
+        <button type="button" data-plus="${i.product.id}">+</button>
+      </div>
+      <div class="line-total">${formatVND(i.lineTotal)}</div>
+      <div></div>
+    </div>
+  `).join("");
+
+  const total = cartTotal();
+
+  wrap.innerHTML = `
+    <div class="cart-wrap">
+      <div class="cart-list">${rows}</div>
+      <div class="summary-card">
+        <h3 class="mt-0">Tóm tắt đơn hàng</h3>
+        <div class="summary-row"><span>Tạm tính (${cartCount()} sản phẩm)</span><span>${formatVND(total)}</span></div>
+        <div class="summary-row"><span>Phí vận chuyển</span><span>Báo giá khi xác nhận</span></div>
+        <div class="summary-row total"><span>Tổng cộng</span><span>${formatVND(total)}</span></div>
+        <a href="thanh-toan.html" class="btn btn-primary btn-block btn-lg" style="margin-top:16px;">Tiến hành đặt hàng</a>
+        <a href="san-pham.html" class="btn btn-outline btn-block" style="margin-top:10px;">Tiếp tục chọn thêm sản phẩm</a>
+      </div>
+    </div>
+  `;
+
+  wrap.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.addEventListener("click", () => { removeFromCart(btn.dataset.remove); renderCartPage(); });
+  });
+  wrap.querySelectorAll("[data-minus]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = wrap.querySelector(`[data-qty="${btn.dataset.minus}"]`);
+      const val = Math.max(1, parseInt(input.value) - 1);
+      updateCartQty(btn.dataset.minus, val);
+      renderCartPage();
+    });
+  });
+  wrap.querySelectorAll("[data-plus]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = wrap.querySelector(`[data-qty="${btn.dataset.plus}"]`);
+      const val = parseInt(input.value) + 1;
+      updateCartQty(btn.dataset.plus, val);
+      renderCartPage();
+    });
+  });
+  wrap.querySelectorAll("[data-qty]").forEach(input => {
+    input.addEventListener("change", () => {
+      updateCartQty(input.dataset.qty, input.value);
+      renderCartPage();
+    });
+  });
+}
+renderCartPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sản phẩm — Minh Hiền Hydraulics</title>
+<meta name="description" content="Danh sách ống thủy lực và rắc co: tìm theo danh mục, kích thước, giá cả rõ ràng.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <a href="tel:0909123456">📞 Hotline: 0909 123 456</a>
+        <a href="lien-he.html">Hệ thống cửa hàng</a>
+      </div>
+      <div class="topbar-links">
+        <span>Giao hàng toàn quốc · Tư vấn kỹ thuật miễn phí</span>
+      </div>
+    </div>
+  </div>
+  <div class="container header-main">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">MH</span>
+      <span>MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Trang chủ</a>
+      <a href="san-pham.html">Sản phẩm</a>
+      <a href="gioi-thieu.html">Giới thiệu</a>
+      <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
+      <a href="lien-he.html">Liên hệ</a>
+    </nav>
+    <div class="header-actions">
+      <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge" style="display:none">0</span>
+      </a>
+      <button class="nav-toggle" aria-label="Mở menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="section-tight">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Trang chủ</a> / Sản phẩm</div>
+    <div class="section-head" style="margin-bottom:26px;">
+      <span class="eyebrow">Toàn bộ sản phẩm</span>
+      <h2>Ống thủy lực &amp; Rắc co</h2>
+      <p>Lọc theo danh mục hoặc tìm theo tên, kích thước để chọn đúng sản phẩm cần dùng.</p>
+    </div>
+
+    <div class="product-toolbar">
+      <div class="filter-chips" id="filter-chips"></div>
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search-input" placeholder="Tìm theo tên hoặc kích thước, VD: 1/2 inch...">
+      </div>
+    </div>
+
+    <p class="muted" style="margin-bottom:18px;">Tìm thấy <strong id="result-count">0</strong> sản phẩm</p>
+
+    <div class="product-grid" id="product-grid"></div>
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <h3>Không tìm thấy sản phẩm phù hợp</h3>
+      <p>Thử từ khóa khác hoặc gọi hotline 0909 123 456 để được tư vấn trực tiếp.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>MINH HIỀN HYDRAULICS</h4>
+        <p>Chuyên cung cấp ống thủy lực, rắc co và phụ kiện thủy lực chính hãng cho máy công trình, nhà xưởng và cơ khí chế tạo.</p>
+      </div>
+      <div>
+        <h4>Danh mục</h4>
+        <ul>
+          <li><a href="san-pham.html?cat=ong-thuy-luc">Ống thủy lực</a></li>
+          <li><a href="san-pham.html?cat=rac-co">Rắc co &amp; Đầu nối</a></li>
+          <li><a href="san-pham.html">Tất cả sản phẩm</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Về chúng tôi</h4>
+        <ul>
+          <li><a href="gioi-thieu.html">Giới thiệu</a></li>
+          <li><a href="trai-nghiem.html">Trải nghiệm khách hàng</a></li>
+          <li><a href="lien-he.html">Liên hệ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Liên hệ</h4>
+        <p>Hotline: 0909 123 456<br>Email: cskh@minhhien-hydraulics.vn<br>123 Đường Công Nghiệp, P. Bình Hưng Hòa, TP.HCM</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © <span id="year"></span> Minh Hiền Hydraulics. Thông tin trên website mang tính minh họa, vui lòng liên hệ để được báo giá chính xác.
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
