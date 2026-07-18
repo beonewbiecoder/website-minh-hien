@@ -87,6 +87,7 @@
   </div>
 </footer>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
@@ -167,6 +168,7 @@ function renderCartPage(){
   });
 }
 renderCartPage();
+window.addEventListener("products-updated", renderCartPage);
 </script>
 </body>
 </html>

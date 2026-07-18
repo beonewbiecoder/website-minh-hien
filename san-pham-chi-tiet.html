@@ -94,11 +94,12 @@
   </div>
 </footer>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
 <script>
-(function(){
+function renderProductDetail(){
   const params = new URLSearchParams(location.search);
   const id = params.get("id");
   const product = findProduct(id);
@@ -174,7 +175,9 @@
     relEl.innerHTML = related.map(productCardHTML).join("");
     bindAddToCartButtons(relEl);
   }
-})();
+}
+renderProductDetail();
+window.addEventListener("products-updated", renderProductDetail);
 </script>
 </body>
 </html>

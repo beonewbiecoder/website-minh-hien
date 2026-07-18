@@ -56,6 +56,17 @@ function productIcon(type, size){
   return icons[type] || icons.hex;
 }
 
+/* ---------- Gửi dữ liệu (đơn hàng / liên hệ) lên Apps Script ---------- */
+function postToAppsScript(payload){
+  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL) return Promise.resolve(false);
+  return fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(() => true).catch(() => false);
+}
+
 /* ---------- Nav toggle (mobile) ---------- */
 function initNav(){
   const toggle = document.querySelector(".nav-toggle");
@@ -178,5 +189,6 @@ function initProductListing(){
     }
   }
   render();
+  window.addEventListener("products-updated", render);
 }
 document.addEventListener("DOMContentLoaded", initProductListing);

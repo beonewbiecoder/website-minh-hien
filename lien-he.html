@@ -136,6 +136,7 @@
   </div>
 </footer>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
@@ -144,10 +145,12 @@ document.getElementById("contact-form").addEventListener("submit", function(e){
   e.preventDefault();
   const name = document.getElementById("c-name").value.trim();
   const phone = document.getElementById("c-phone").value.trim();
+  const message = document.getElementById("c-message").value.trim();
   if(!name || !phone){
     showToast("Vui lòng nhập họ tên và số điện thoại");
     return;
   }
+  postToAppsScript({ type: "contact", name, phone, message });
   showToast("Đã gửi yêu cầu ✓ Chúng tôi sẽ gọi lại sớm nhất");
   this.reset();
 });

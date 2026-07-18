@@ -20,7 +20,7 @@ const CATEGORIES = [
   }
 ];
 
-const PRODUCTS = [
+let PRODUCTS = [
   {
     id: "ong-1sn-12",
     name: "Ống thủy lực 1 lớp thép bện SAE 100R1AT",
@@ -318,3 +318,24 @@ function findProduct(id){
 function formatVND(n){
   return n.toLocaleString('vi-VN') + '₫';
 }
+
+/* =========================================================
+   Tải danh sách sản phẩm mới nhất từ Google Sheet (nếu đã cấu hình
+   APPS_SCRIPT_URL trong js/config.js). Nếu chưa cấu hình, lỗi mạng,
+   hoặc Sheet trống thì giữ nguyên dữ liệu mẫu ở trên — website vẫn
+   chạy bình thường.
+   ========================================================= */
+function refreshProductsFromSheet(){
+  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL) return;
+  fetch(APPS_SCRIPT_URL + "?action=products")
+    .then(res => res.json())
+    .then(data => {
+      if(data && data.success && Array.isArray(data.products) && data.products.length){
+        PRODUCTS.length = 0;
+        data.products.forEach(p => PRODUCTS.push(p));
+        window.dispatchEvent(new Event("products-updated"));
+      }
+    })
+    .catch(() => { /* giữ dữ liệu mẫu nếu chưa kết nối được Sheet */ });
+}
+document.addEventListener("DOMContentLoaded", refreshProductsFromSheet);

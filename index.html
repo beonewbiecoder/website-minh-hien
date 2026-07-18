@@ -215,12 +215,14 @@
   </div>
 </footer>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
 <script>
   renderCategoryCards("category-cards");
   renderFeaturedProducts("featured-products", 6);
+  window.addEventListener("products-updated", () => renderFeaturedProducts("featured-products", 6));
 </script>
 </body>
 </html>

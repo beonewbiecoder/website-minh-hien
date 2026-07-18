@@ -90,6 +90,7 @@
   </div>
 </footer>
 
+<script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
@@ -182,6 +183,17 @@ function renderCheckout(){
       showToast("Vui lòng nhập họ tên và số điện thoại");
       return;
     }
+    const orderItems = cartDetailed();
+    postToAppsScript({
+      type: "order",
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      note: customer.note,
+      items: orderItems.map(i => ({ name: i.product.name, size: i.product.size, qty: i.qty, unit: i.product.unit, lineTotal: i.lineTotal })),
+      total: cartTotal()
+    });
     showSuccess(customer);
   });
 }
