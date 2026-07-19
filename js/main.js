@@ -72,8 +72,14 @@ function initNav(){
   const toggle = document.querySelector(".nav-toggle");
   const nav = document.querySelector(".main-nav");
   if(toggle && nav){
-    toggle.addEventListener("click", () => nav.classList.toggle("open"));
-    nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => nav.classList.remove("open")));
+    toggle.addEventListener("click", () => {
+      nav.classList.toggle("open");
+      document.body.classList.toggle("nav-open", nav.classList.contains("open"));
+    });
+    nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+      nav.classList.remove("open");
+      document.body.classList.remove("nav-open");
+    }));
   }
   // highlight active link
   const path = location.pathname.split("/").pop() || "index.html";
@@ -84,6 +90,31 @@ function initNav(){
   if(yearEl) yearEl.textContent = new Date().getFullYear();
 }
 document.addEventListener("DOMContentLoaded", initNav);
+
+/* ---------- Thanh liên hệ nhanh (mobile) — gọi điện + Zalo ---------- */
+function renderContactBar(){
+  if(document.getElementById("mobile-contact-bar")) return;
+  const phone = typeof CONTACT_PHONE !== "undefined" ? CONTACT_PHONE : "";
+  const phoneDisplay = typeof CONTACT_PHONE_DISPLAY !== "undefined" ? CONTACT_PHONE_DISPLAY : phone;
+  const zaloUrl = typeof ZALO_URL !== "undefined" ? ZALO_URL : "#";
+  if(!phone) return;
+
+  const bar = document.createElement("div");
+  bar.className = "mobile-contact-bar";
+  bar.id = "mobile-contact-bar";
+  bar.innerHTML = `
+    <a href="tel:${phone}" class="contact-bar-btn contact-bar-call" aria-label="Gọi điện cho cửa hàng, số ${phoneDisplay}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+      <span>Gọi điện</span>
+    </a>
+    <a href="${zaloUrl}" target="_blank" rel="noopener" class="contact-bar-btn contact-bar-zalo" aria-label="Nhắn tin Zalo cho cửa hàng">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span>Nhắn Zalo</span>
+    </a>
+  `;
+  document.body.appendChild(bar);
+}
+document.addEventListener("DOMContentLoaded", renderContactBar);
 
 /* ---------- Card sản phẩm dùng chung ---------- */
 function productCardHTML(p){

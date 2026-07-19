@@ -448,6 +448,47 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   border-top: 1px solid rgba(255,255,255,.1); padding-top: 20px; text-align: center; font-size: .85rem;
 }
 
+/* ---------- Thanh liên hệ nhanh (mobile only) ---------- */
+.mobile-contact-bar{ display: none; }
+
+@media (max-width: 768px){
+  body{ padding-bottom: 92px; }
+
+  .mobile-contact-bar{
+    display: flex;
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 150;
+    gap: 10px;
+  }
+  body.nav-open .mobile-contact-bar{ display: none; }
+
+  .contact-bar-btn{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 8px 22px rgba(18, 48, 73, 0.25);
+    text-decoration: none;
+  }
+  .contact-bar-call{
+    background: var(--navy);
+    color: var(--white);
+  }
+  .contact-bar-zalo{
+    background: #e8eef5;
+    color: var(--navy);
+    border: 1px solid rgba(18, 48, 73, 0.15);
+  }
+}
+
 /* ---------- Toast ---------- */
 .toast{
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
