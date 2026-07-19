@@ -15,3 +15,6 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlIw5LuuphOdow
 const CONTACT_PHONE = "0918159870";
 const CONTACT_PHONE_DISPLAY = "091 815 9870";
 const ZALO_URL = "https://zalo.me/0918159870";
+const CONTACT_EMAIL = "minhhien.bz@gmail.com";
+const CONTACT_ADDRESS = "11 Thái Phiên, Phường Minh Phụng, TP. Hồ Chí Minh";
+const CONTACT_HOURS = "Thứ Hai – Thứ Bảy: 7:00 – 17:00";
