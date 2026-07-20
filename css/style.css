@@ -198,6 +198,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 /* ---------- Thanh tìm kiếm trang chủ ---------- */
 .home-search-section{ padding: 44px 0 8px; }
 .home-search-box{
+  position: relative;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;

@@ -1,7 +1,7 @@
 /* =========================================================
    SEARCH.JS — Tìm kiếm sản phẩm thông minh (fuzzy search)
-   Dùng Fuse.js (nhúng qua CDN ở san-pham.html), chạy hoàn toàn
-   trên trình duyệt, không cần backend.
+   Dùng Fuse.js (nhúng qua CDN ở index.html và san-pham.html), chạy
+   hoàn toàn trên trình duyệt, không cần backend.
 
    Nguồn dữ liệu: dùng trực tiếp mảng PRODUCTS đang có (js/data.js) —
    đây đã là nguồn dữ liệu sản phẩm dùng chung cho toàn site và được
@@ -72,11 +72,17 @@ function fuzzySearchProducts(query){
 // Sản phẩm đổi mới từ Sheet thì build lại index ở lần tìm kế tiếp
 window.addEventListener("products-updated", () => { __fuseIndex = null; });
 
-/* ---------- Dropdown gợi ý real-time ---------- */
-function initSearchDropdown(){
-  const input = document.getElementById("search-input");
+/* ---------- Dropdown gợi ý real-time ----------
+   Dùng chung cho mọi ô tìm kiếm trên site (trang sản phẩm, trang chủ...).
+   config:
+   - inputId: id của ô input
+   - wrapperSelector: selector của khối bao quanh input để neo dropdown
+   - onViewAll(query): tuỳ chọn — hành động khi bấm "Xem tất cả kết quả"
+     (mặc định: cuộn tới #product-grid, dùng cho trang sản phẩm) */
+function initSearchDropdown(config){
+  const input = document.getElementById(config.inputId);
   if(!input) return;
-  const box = input.closest(".search-box");
+  const box = input.closest(config.wrapperSelector);
   if(!box) return;
 
   const dropdown = document.createElement("div");
@@ -117,16 +123,20 @@ function initSearchDropdown(){
         </span>
       </a>
     `).join("") + (results.length > MAX_SHOWN
-      ? `<button type="button" class="search-view-all" id="search-view-all">Xem tất cả ${results.length} kết quả</button>`
+      ? `<button type="button" class="search-view-all">Xem tất cả ${results.length} kết quả</button>`
       : "");
     dropdown.hidden = false;
 
-    const viewAllBtn = document.getElementById("search-view-all");
+    const viewAllBtn = dropdown.querySelector(".search-view-all");
     if(viewAllBtn){
       viewAllBtn.addEventListener("click", () => {
         closeDropdown();
-        const grid = document.getElementById("product-grid");
-        if(grid) grid.scrollIntoView({ behavior: "smooth", block: "start" });
+        if(config.onViewAll){
+          config.onViewAll(q);
+        }else{
+          const grid = document.getElementById("product-grid");
+          if(grid) grid.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       });
     }
   }
@@ -147,4 +157,13 @@ function initSearchDropdown(){
     if(!box.contains(e.target)) closeDropdown();
   });
 }
-document.addEventListener("DOMContentLoaded", initSearchDropdown);
+document.addEventListener("DOMContentLoaded", () => {
+  // Trang sản phẩm: dropdown neo vào .search-box, "Xem tất cả" cuộn tới lưới sản phẩm
+  initSearchDropdown({ inputId: "search-input", wrapperSelector: ".search-box" });
+  // Trang chủ: dropdown neo vào cả khối tìm kiếm, "Xem tất cả" chuyển sang trang sản phẩm
+  initSearchDropdown({
+    inputId: "home-search-input",
+    wrapperSelector: ".home-search-box",
+    onViewAll: q => { location.href = "san-pham.html?search=" + encodeURIComponent(q); }
+  });
+});
