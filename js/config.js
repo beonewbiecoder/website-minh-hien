@@ -12,6 +12,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlIw5LuuphOdow
    Đây là số Zalo cá nhân dùng tạm. Khi có Zalo OA chính thức,
    chỉ cần đổi ZALO_URL ở đây — không cần sửa chỗ nào khác.
    ========================================================= */
+const BRAND_SHORT_NAME = "Cửa Hàng Minh Hiền";
 const CONTACT_PHONE = "0918159870";
 const CONTACT_PHONE_DISPLAY = "091 815 9870";
 const ZALO_URL = "https://zalo.me/0918159870";

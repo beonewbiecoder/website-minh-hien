@@ -67,6 +67,17 @@ function postToAppsScript(payload){
   }).then(() => true).catch(() => false);
 }
 
+/* Giống postToAppsScript nhưng ĐỌC được phản hồi JSON — dùng cho chat AI
+   (cần đợi câu trả lời, không thể "bắn rồi quên" như đơn hàng/liên hệ) */
+function postToAppsScriptJSON(payload){
+  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL) return Promise.resolve(null);
+  return fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(res => res.json()).catch(() => null);
+}
+
 /* ---------- Nav toggle (mobile) ---------- */
 function initNav(){
   const toggle = document.querySelector(".nav-toggle");
@@ -132,6 +143,118 @@ function renderContactBar(){
   }
 }
 document.addEventListener("DOMContentLoaded", renderContactBar);
+
+/* ---------- Khung chat trợ lý AI ---------- */
+function getAiChatSessionId_(){
+  let id = sessionStorage.getItem("mh_chat_session");
+  if(!id){
+    id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : ("s-" + Date.now() + "-" + Math.random().toString(16).slice(2));
+    sessionStorage.setItem("mh_chat_session", id);
+  }
+  return id;
+}
+
+function renderAIChatWidget(){
+  if(document.getElementById("ai-chat-widget")) return;
+
+  const zaloUrl = typeof ZALO_URL !== "undefined" ? ZALO_URL : "#";
+  const brand = typeof BRAND_SHORT_NAME !== "undefined" ? BRAND_SHORT_NAME : "Cửa Hàng Minh Hiền";
+
+  const wrap = document.createElement("div");
+  wrap.id = "ai-chat-widget";
+  wrap.innerHTML = `
+    <div class="ai-chat-backdrop" id="ai-chat-backdrop"></div>
+    <button class="ai-chat-bubble" id="ai-chat-bubble" aria-label="Mở khung chat trợ lý AI, trả lời tự động, không phải người thật">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span class="ai-chat-badge">AI</span>
+    </button>
+    <div class="ai-chat-panel" id="ai-chat-panel" role="dialog" aria-label="Khung chat trợ lý AI">
+      <div class="ai-chat-header">
+        <div>
+          <strong>Trợ lý AI - ${brand}</strong>
+          <span class="ai-chat-subtitle">Trả lời tự động, có thể chưa chính xác 100%</span>
+        </div>
+        <button class="ai-chat-close" id="ai-chat-close" aria-label="Đóng khung chat">✕</button>
+      </div>
+      <div class="ai-chat-messages" id="ai-chat-messages">
+        <div class="ai-chat-msg ai-chat-msg-bot">Xin chào! Mình là trợ lý AI của cửa hàng. Bạn cần hỏi gì về ống thủy lực hoặc rắc co không?</div>
+      </div>
+      <div class="ai-chat-escalate-wrap">
+        <button type="button" class="ai-chat-escalate-btn" id="ai-chat-escalate-btn">Tư vấn với chuyên viên kỹ thuật</button>
+      </div>
+      <form class="ai-chat-input-row" id="ai-chat-form">
+        <input type="text" id="ai-chat-input" placeholder="Nhập câu hỏi..." autocomplete="off" aria-label="Nhập câu hỏi cho trợ lý AI">
+        <button type="submit" aria-label="Gửi câu hỏi">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+
+  const bubble = document.getElementById("ai-chat-bubble");
+  const closeBtn = document.getElementById("ai-chat-close");
+  const backdrop = document.getElementById("ai-chat-backdrop");
+  const messagesEl = document.getElementById("ai-chat-messages");
+  const form = document.getElementById("ai-chat-form");
+  const input = document.getElementById("ai-chat-input");
+  const escalateBtn = document.getElementById("ai-chat-escalate-btn");
+
+  function openChat(){ document.body.classList.add("ai-chat-open"); setTimeout(() => input.focus(), 50); }
+  function closeChat(){ document.body.classList.remove("ai-chat-open"); }
+  bubble.addEventListener("click", () => {
+    document.body.classList.contains("ai-chat-open") ? closeChat() : openChat();
+  });
+  closeBtn.addEventListener("click", closeChat);
+  backdrop.addEventListener("click", closeChat);
+
+  let lastUserMessage = "";
+
+  function addMessage(text, who){
+    const div = document.createElement("div");
+    div.className = "ai-chat-msg ai-chat-msg-" + who;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const text = input.value.trim();
+    if(!text) return;
+    lastUserMessage = text;
+    addMessage(text, "user");
+    input.value = "";
+    input.disabled = true;
+    const typing = addMessage("Đang trả lời...", "bot");
+    typing.classList.add("ai-chat-msg-typing");
+
+    postToAppsScriptJSON({ type: "chat", sessionId: getAiChatSessionId_(), message: text })
+      .then(res => {
+        typing.remove();
+        input.disabled = false;
+        input.focus();
+        if(res && res.success && res.reply){
+          addMessage(res.reply, "bot");
+        }else{
+          addMessage("Xin lỗi, hiện mình chưa trả lời được câu hỏi này. Bạn bấm 'Tư vấn với chuyên viên kỹ thuật' bên dưới giúp mình nhé.", "bot");
+        }
+      })
+      .catch(() => {
+        typing.remove();
+        input.disabled = false;
+        addMessage("Xin lỗi, hiện mình chưa trả lời được câu hỏi này. Bạn bấm 'Tư vấn với chuyên viên kỹ thuật' bên dưới giúp mình nhé.", "bot");
+      });
+  });
+
+  escalateBtn.addEventListener("click", function(){
+    postToAppsScript({ type: "chat_escalate", sessionId: getAiChatSessionId_(), lastMessage: lastUserMessage });
+    addMessage("Mình đã mở Zalo giúp bạn, bạn nhắn tiếp cho nhân viên nhé!", "bot");
+    window.open(zaloUrl, "_blank");
+  });
+}
+document.addEventListener("DOMContentLoaded", renderAIChatWidget);
 
 /* ---------- Card sản phẩm dùng chung ---------- */
 function productCardHTML(p){
