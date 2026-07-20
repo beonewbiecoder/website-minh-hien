@@ -347,7 +347,8 @@ function initProductListing(){
 
   const params = new URLSearchParams(location.search);
   let activeCat = params.get("cat") || "all";
-  let query = "";
+  // Tới từ ô tìm kiếm trang chủ (san-pham.html?search=...) thì lấy sẵn từ khóa đó
+  let query = params.get("search") || "";
 
   const chipsWrap = document.getElementById("filter-chips");
   if(chipsWrap){
@@ -367,6 +368,7 @@ function initProductListing(){
 
   const searchInput = document.getElementById("search-input");
   if(searchInput){
+    if(query) searchInput.value = query;
     searchInput.addEventListener("input", () => {
       query = searchInput.value.trim();
       render();
@@ -397,5 +399,58 @@ function initProductListing(){
   }
   render();
   window.addEventListener("products-updated", render);
+
+  // Tới từ thanh tìm kiếm trang chủ: cuộn tới đúng thanh tìm kiếm (đã tự điền + tự lọc ở trên)
+  if(query){
+    const toolbar = document.querySelector(".product-toolbar");
+    if(toolbar) setTimeout(() => toolbar.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  }
 }
 document.addEventListener("DOMContentLoaded", initProductListing);
+
+/* ---------- Thanh tìm kiếm cố định (sticky) trên trang sản phẩm ---------- */
+function initStickyProductToolbar(){
+  const header = document.querySelector(".site-header");
+  const toolbar = document.querySelector(".product-toolbar");
+  const sentinel = document.getElementById("toolbar-sentinel");
+  if(!header || !toolbar) return;
+
+  function applyOffset(){
+    const h = header.offsetHeight;
+    toolbar.style.top = h + "px";
+    toolbar.style.scrollMarginTop = h + "px";
+  }
+  applyOffset();
+  window.addEventListener("load", applyOffset);
+  window.addEventListener("resize", applyOffset);
+
+  if(sentinel && "IntersectionObserver" in window){
+    let observer;
+    function setupObserver(){
+      if(observer) observer.disconnect();
+      observer = new IntersectionObserver(
+        ([entry]) => toolbar.classList.toggle("is-stuck", !entry.isIntersecting),
+        { threshold: 0, rootMargin: `-${header.offsetHeight + 1}px 0px 0px 0px` }
+      );
+      observer.observe(sentinel);
+    }
+    setupObserver();
+    // Header có thể đổi chiều cao khi resize (topbar xuống dòng) — dựng lại observer cho đúng
+    window.addEventListener("resize", setupObserver);
+  }
+}
+document.addEventListener("DOMContentLoaded", initStickyProductToolbar);
+
+/* ---------- Thanh tìm kiếm ở trang chủ — chuyển sang trang sản phẩm kèm từ khóa ---------- */
+function initHomeSearchRedirect(){
+  const form = document.getElementById("home-search-form");
+  if(!form) return;
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const input = document.getElementById("home-search-input");
+    const q = input.value.trim();
+    if(!q) return;
+    location.href = "san-pham.html?search=" + encodeURIComponent(q);
+  });
+}
+document.addEventListener("DOMContentLoaded", initHomeSearchRedirect);
