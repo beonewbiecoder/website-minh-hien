@@ -368,17 +368,21 @@ function initProductListing(){
   const searchInput = document.getElementById("search-input");
   if(searchInput){
     searchInput.addEventListener("input", () => {
-      query = searchInput.value.trim().toLowerCase();
+      query = searchInput.value.trim();
       render();
     });
   }
 
   function render(){
-    const filtered = PRODUCTS.filter(p => {
-      const matchCat = activeCat === "all" || p.category === activeCat;
-      const matchQuery = !query || p.name.toLowerCase().includes(query) || p.size.toLowerCase().includes(query);
-      return matchCat && matchQuery;
-    });
+    // Có từ khóa: dùng kết quả tìm mờ (đã xếp theo độ liên quan) làm danh sách gốc.
+    // Không có từ khóa: giữ nguyên toàn bộ PRODUCTS như trước.
+    let base = PRODUCTS;
+    if(query){
+      base = typeof fuzzySearchProducts === "function"
+        ? fuzzySearchProducts(query)
+        : PRODUCTS.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || p.size.toLowerCase().includes(query.toLowerCase()));
+    }
+    const filtered = base.filter(p => activeCat === "all" || p.category === activeCat);
     const countEl = document.getElementById("result-count");
     if(countEl) countEl.textContent = filtered.length;
 
