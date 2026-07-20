@@ -506,6 +506,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     z-index: 150;
   }
   .fab-btn{
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -515,6 +516,9 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     box-shadow: 0 8px 22px rgba(18, 48, 73, 0.28);
     text-decoration: none;
     white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
   }
   .fab-btn .fab-label{
     max-width: 0;
@@ -542,10 +546,28 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   .fab-call:hover{ background: var(--navy-light); }
   .fab-zalo{ background: #e8eef5; color: var(--navy); border: 1px solid rgba(18, 48, 73, 0.15); }
   .fab-zalo:hover{ background: #dbe6f0; }
+  .fab-ai{ background: var(--accent); color: var(--white); }
+  .fab-ai:hover{ background: var(--accent-dark); }
+  .fab-ai-badge{
+    position: absolute;
+    top: -6px;
+    right: 6px;
+    background: var(--navy);
+    color: var(--white);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 1px 5px;
+    border-radius: 999px;
+    border: 2px solid var(--white);
+    pointer-events: none;
+  }
 }
 
 /* ---------- Khung chat trợ lý AI ---------- */
+/* Nút tròn nổi: CHỈ hiện trên mobile (đã có nút riêng gộp trong .desktop-fab cho desktop) */
 .ai-chat-bubble{
+  display: none;
   position: fixed;
   z-index: 200;
   width: 56px;
@@ -554,7 +576,6 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   background: var(--navy);
   color: var(--white);
   border: none;
-  display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 10px 26px rgba(18, 48, 73, 0.35);
@@ -709,13 +730,13 @@ body.ai-chat-open .ai-chat-panel{ display: flex; }
 
 /* Mobile: nút nổi trên thanh liên hệ nhanh; panel gần toàn màn hình */
 @media (max-width: 768px){
-  .ai-chat-bubble{ right: 14px; bottom: 76px; }
+  .ai-chat-bubble{ display: flex; right: 14px; bottom: 76px; }
   .ai-chat-panel{ top: 14px; left: 14px; right: 14px; bottom: 14px; }
 }
 
-/* Desktop: nút góc dưới phải; panel dạng popup nhỏ phía trên nút */
+/* Desktop: nút Chat AI nằm chung cột với Gọi điện/Zalo (xem .fab-ai);
+   panel dạng popup nhỏ phía trên góc dưới phải */
 @media (min-width: 769px){
-  .ai-chat-bubble{ right: 20px; bottom: 20px; }
   .ai-chat-panel{
     right: 20px;
     bottom: 88px;

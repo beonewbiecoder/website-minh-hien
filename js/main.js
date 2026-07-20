@@ -154,6 +154,19 @@ function getAiChatSessionId_(){
   return id;
 }
 
+// Icon robot — cố tình khác hẳn icon bong bóng chat (Zalo) để khách nhận ra
+// ngay đây là chat với AI, không phải nhắn tin với người thật
+const AI_ROBOT_ICON_ = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 8V4"/>
+  <circle cx="12" cy="3" r="1" fill="currentColor" stroke="none"/>
+  <rect x="4" y="8" width="16" height="12" rx="3"/>
+  <circle cx="9" cy="14" r="1.3" fill="currentColor" stroke="none"/>
+  <circle cx="15" cy="14" r="1.3" fill="currentColor" stroke="none"/>
+  <path d="M9 17.2h6"/>
+  <path d="M2 13h2"/>
+  <path d="M20 13h2"/>
+</svg>`;
+
 function renderAIChatWidget(){
   if(document.getElementById("ai-chat-widget")) return;
 
@@ -165,7 +178,7 @@ function renderAIChatWidget(){
   wrap.innerHTML = `
     <div class="ai-chat-backdrop" id="ai-chat-backdrop"></div>
     <button class="ai-chat-bubble" id="ai-chat-bubble" aria-label="Mở khung chat trợ lý AI, trả lời tự động, không phải người thật">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      ${AI_ROBOT_ICON_}
       <span class="ai-chat-badge">AI</span>
     </button>
     <div class="ai-chat-panel" id="ai-chat-panel" role="dialog" aria-label="Khung chat trợ lý AI">
@@ -192,6 +205,23 @@ function renderAIChatWidget(){
   `;
   document.body.appendChild(wrap);
 
+  // Nút desktop: gộp chung cột với Gọi điện / Nhắn Zalo (cùng khoảng cách, cùng kiểu)
+  // thay vì để riêng lẻ ở góc màn hình như trước.
+  const fabGroup = document.getElementById("desktop-contact-fab");
+  let desktopBtn = null;
+  if(fabGroup){
+    desktopBtn = document.createElement("button");
+    desktopBtn.type = "button";
+    desktopBtn.className = "fab-btn fab-ai";
+    desktopBtn.setAttribute("aria-label", "Mở khung chat trợ lý AI, trả lời tự động, không phải người thật");
+    desktopBtn.innerHTML = `
+      <span class="fab-label">Chat AI</span>
+      <span class="fab-icon">${AI_ROBOT_ICON_}</span>
+      <span class="fab-ai-badge">AI</span>
+    `;
+    fabGroup.appendChild(desktopBtn);
+  }
+
   const bubble = document.getElementById("ai-chat-bubble");
   const closeBtn = document.getElementById("ai-chat-close");
   const backdrop = document.getElementById("ai-chat-backdrop");
@@ -202,9 +232,11 @@ function renderAIChatWidget(){
 
   function openChat(){ document.body.classList.add("ai-chat-open"); setTimeout(() => input.focus(), 50); }
   function closeChat(){ document.body.classList.remove("ai-chat-open"); }
-  bubble.addEventListener("click", () => {
+  function toggleChat(){
     document.body.classList.contains("ai-chat-open") ? closeChat() : openChat();
-  });
+  }
+  bubble.addEventListener("click", toggleChat);
+  if(desktopBtn) desktopBtn.addEventListener("click", toggleChat);
   closeBtn.addEventListener("click", closeChat);
   backdrop.addEventListener("click", closeChat);
 
