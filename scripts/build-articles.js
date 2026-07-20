@@ -56,6 +56,12 @@ function formatDateVN(isoDate) {
   return `${d}/${m}/${y}`;
 }
 
+// Google Rich Results Test yêu cầu datePublished/dateModified có giờ + múi giờ đầy đủ (ISO 8601),
+// không chấp nhận chỉ "YYYY-MM-DD". Cửa hàng ở Việt Nam nên dùng cố định +07:00.
+function toIsoDateTime(isoDate) {
+  return `${isoDate}T00:00:00+07:00`;
+}
+
 /* ---------- Đọc frontmatter (YAML đơn giản, chỉ key: value phẳng) ---------- */
 
 function parseFrontmatter(raw, fileName) {
@@ -243,8 +249,8 @@ function buildJsonLd(article) {
     headline: article.title,
     description: article.description,
     image: [imageUrl],
-    datePublished: article.date,
-    dateModified: article.date,
+    datePublished: toIsoDateTime(article.date),
+    dateModified: toIsoDateTime(article.date),
     author: { "@type": "Organization", name: BRAND_NAME, url: SITE_BASE_URL },
     publisher: { "@type": "Organization", name: BRAND_NAME, url: SITE_BASE_URL },
     mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl }
