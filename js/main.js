@@ -454,3 +454,79 @@ function initHomeSearchRedirect(){
   });
 }
 document.addEventListener("DOMContentLoaded", initHomeSearchRedirect);
+
+/* ---------- Thẻ bài viết "Kiến thức thủy lực" (trang chủ + trang danh sách) ---------- */
+const ARTICLE_PLACEHOLDER_ICON_ = `<svg width="40" height="40" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+  <path d="M8 20c6-8 12 8 18 0s12 8 18 0 12 8 12 0" opacity=".9"/>
+  <path d="M8 44c6-8 12 8 18 0s12 8 18 0 12 8 12 0" opacity=".5"/>
+  <circle cx="8" cy="20" r="3" fill="currentColor" stroke="none"/>
+  <circle cx="56" cy="20" r="3" fill="currentColor" stroke="none"/>
+</svg>`;
+
+function articleCardHTML(a){
+  const thumb = a.image
+    ? `<img src="${a.image}" alt="${a.title}">`
+    : ARTICLE_PLACEHOLDER_ICON_;
+  return `
+    <a href="${a.url}" class="article-card">
+      <div class="article-card-thumb">${thumb}</div>
+      <div class="article-card-body">
+        <span class="article-card-date">${a.dateDisplay}</span>
+        <h3 class="article-card-title">${a.title}</h3>
+        <p class="article-card-excerpt">${a.description}</p>
+        <span class="article-card-more">Đọc tiếp &rarr;</span>
+      </div>
+    </a>`;
+}
+
+function renderArticleCards(containerId, limit){
+  const el = document.getElementById(containerId);
+  if(!el || typeof ARTICLES === "undefined") return;
+  const list = ARTICLES.slice(0, limit || ARTICLES.length);
+  el.innerHTML = list.length
+    ? list.map(articleCardHTML).join("")
+    : `<div class="article-empty">Chưa có bài viết nào.</div>`;
+}
+
+/* ---------- Trang danh sách bài viết (bai-viet.html) — phân trang phía trình duyệt ---------- */
+function initArticleListing(){
+  const grid = document.getElementById("article-list-grid");
+  if(!grid || typeof ARTICLES === "undefined") return;
+
+  const PAGE_SIZE = 9;
+  const pager = document.getElementById("article-pagination");
+  let currentPage = 1;
+
+  function totalPages(){
+    return Math.max(1, Math.ceil(ARTICLES.length / PAGE_SIZE));
+  }
+
+  function renderPage(page){
+    const pages = totalPages();
+    currentPage = Math.min(Math.max(1, page), pages);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const list = ARTICLES.slice(start, start + PAGE_SIZE);
+    grid.innerHTML = list.length
+      ? list.map(articleCardHTML).join("")
+      : `<div class="article-empty">Chưa có bài viết nào.</div>`;
+    renderPager(pages);
+    grid.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderPager(pages){
+    if(!pager) return;
+    if(pages <= 1){ pager.innerHTML = ""; return; }
+    let html = `<button type="button" data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""}>&laquo; Trước</button>`;
+    for(let p = 1; p <= pages; p++){
+      html += `<button type="button" data-page="${p}" class="${p === currentPage ? "active" : ""}">${p}</button>`;
+    }
+    html += `<button type="button" data-page="${currentPage + 1}" ${currentPage === pages ? "disabled" : ""}>Sau &raquo;</button>`;
+    pager.innerHTML = html;
+    pager.querySelectorAll("button[data-page]").forEach(btn => {
+      btn.addEventListener("click", () => renderPage(parseInt(btn.dataset.page, 10)));
+    });
+  }
+
+  renderPage(1);
+}
+document.addEventListener("DOMContentLoaded", initArticleListing);

@@ -1,0 +1,43 @@
+name: Build bài viết từ Markdown
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "bai-viet/**.md"
+      - "scripts/build-articles.js"
+      - "package.json"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cài Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cài dependency
+        run: npm install
+
+      - name: Chạy build script
+        run: node scripts/build-articles.js
+
+      - name: Commit lại HTML/JS đã sinh ra (nếu có thay đổi)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bai-viet js/articles-data.js
+          if git diff --cached --quiet; then
+            echo "Không có thay đổi, bỏ qua commit."
+          else
+            git commit -m "chore: tự động build lại trang bài viết từ Markdown"
+            git push
+          fi

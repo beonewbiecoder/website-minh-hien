@@ -1,0 +1,12 @@
+{
+  "name": "website-minh-hien-articles-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build script sinh trang HTML tĩnh từ bai-viet/*.md — chỉ chạy trong GitHub Actions, không cần cài gì trên máy.",
+  "scripts": {
+    "build:articles": "node scripts/build-articles.js"
+  },
+  "dependencies": {
+    "marked": "4.3.0"
+  }
+}

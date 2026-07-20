@@ -194,6 +194,20 @@
     </div>
   </section>
 
+  <section class="section bg-white">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Kiến thức thủy lực</span>
+        <h2>Mẹo chọn và bảo quản ống, rắc co thủy lực</h2>
+        <p>Bài viết kỹ thuật ngắn gọn, dễ hiểu, giúp bạn chọn đúng loại và dùng bền hơn.</p>
+      </div>
+      <div class="grid-3" id="home-articles"></div>
+      <div class="text-center" style="margin-top: 30px;">
+        <a href="bai-viet.html" class="btn btn-secondary">Xem tất cả bài viết</a>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site-footer">
@@ -232,6 +246,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
+<script src="js/articles-data.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
@@ -240,6 +255,7 @@
   renderCategoryCards("category-cards");
   renderFeaturedProducts("featured-products", 6);
   window.addEventListener("products-updated", () => renderFeaturedProducts("featured-products", 6));
+  renderArticleCards("home-articles", 3);
 </script>
 </body>
 </html>
