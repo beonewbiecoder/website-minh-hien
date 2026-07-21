@@ -56,12 +56,12 @@ const VIETQR_ACCOUNT_NAME = "BANH THUC HIEN";
    website vẫn hoạt động bình thường (đặt hàng không bắt buộc đăng nhập).
    ========================================================= */
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAWwCaTBA7o82okuC_s5k5rDvq-mbmREko",
+  authDomain: "chmh-e22e1.firebaseapp.com",
+  projectId: "chmh-e22e1",
+  storageBucket: "chmh-e22e1.firebasestorage.app",
+  messagingSenderId: "506370746806",
+  appId: "1:506370746806:web:4f787c4a698e6f5a503917"
 };
 
 /* =========================================================

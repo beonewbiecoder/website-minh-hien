@@ -25,7 +25,7 @@ const EMAIL_CHU_SHOP = "";
 // PHẢI khớp với FIREBASE_CONFIG.apiKey trong js/config.js — dùng để xác thực
 // lại token đăng nhập Google trước khi trả/huỷ đơn hàng của khách (tránh một
 // khách xem/huỷ được đơn của người khác chỉ bằng cách sửa email trong request).
-const FIREBASE_API_KEY = "";
+const FIREBASE_API_KEY = "AIzaSyAWwCaTBA7o82okuC_s5k5rDvq-mbmREko";
 
 const SHEET_ORDERS = "Orders";
 const SHEET_CONTACTS = "Contacts";
