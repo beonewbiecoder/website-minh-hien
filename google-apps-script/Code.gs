@@ -69,6 +69,10 @@ function doPost(e) {
     }
     return jsonOutput_({ success: true });
   } catch (err) {
+    // Ghi log lỗi lại (xem ở Apps Script > Executions/Việc thực thi) — front-end
+    // gọi "order"/"contact" kiểu no-cors (gửi rồi quên) nên KHÔNG đọc được lỗi này,
+    // nếu không log ở đây thì lỗi coi như biến mất, không cách nào biết được.
+    console.error("doPost lỗi: " + err);
     return jsonOutput_({ success: false, error: String(err) });
   }
 }
@@ -153,7 +157,7 @@ function saveOrder(data) {
     "Phí vận chuyển: " + (data.shippingFee || 0) + "đ",
     "Tổng tiền: " + (data.total || 0) + "đ"
   ].join("\n");
-  MailApp.sendEmail(
+  sendEmailSafe_(
     NOTIFY_EMAIL,
     "[Đơn hàng mới] " + (data.orderCode ? data.orderCode + " - " : "") + data.name + " - " + (data.total || 0) + "đ",
     body
@@ -180,11 +184,23 @@ function saveOrder(data) {
       "Cần hỗ trợ, gọi hotline 091 815 9870 hoặc nhắn Zalo.",
       "Cửa Hàng Minh Hiền"
     ].join("\n");
-    MailApp.sendEmail(
+    sendEmailSafe_(
       data.email,
       "Xác nhận đơn hàng " + (data.orderCode || "") + " - Cửa Hàng Minh Hiền",
       customerBody
     );
+  }
+}
+
+// Gửi email, tự bắt lỗi + ghi log lại (Apps Script > Executions) thay vì để lỗi
+// ném ra làm dừng cả hàm — 1 email gửi thất bại (hết quota Gmail, sai định dạng...)
+// không được làm mất luôn email còn lại (chủ shop / khách hàng) trong cùng 1 lần
+// đặt/huỷ đơn.
+function sendEmailSafe_(to, subject, body, options) {
+  try {
+    MailApp.sendEmail(to, subject, body, options || {});
+  } catch (err) {
+    console.error("Gửi email thất bại tới " + to + " (" + subject + "): " + err);
   }
 }
 
@@ -327,7 +343,7 @@ function sendCancelNotificationEmails_(row, headers, orderCode) {
     + '<p><b>Khách hàng:</b> ' + name + '<br><b>Điện thoại:</b> ' + phone + '<br><b>Email:</b> ' + (email || "(không có)") + '</p>'
     + '<p><b>Sản phẩm:</b><br>' + String(itemsText).replace(/\n/g, "<br>") + '</p>'
     + '<p><b>Tổng tiền:</b> ' + total + 'đ</p>';
-  MailApp.sendEmail(NOTIFY_EMAIL, "[ĐÃ HUỶ] Đơn hàng " + orderCode, shopPlainBody, { htmlBody: shopHtmlBody });
+  sendEmailSafe_(NOTIFY_EMAIL, "[ĐÃ HUỶ] Đơn hàng " + orderCode, shopPlainBody, { htmlBody: shopHtmlBody });
 
   if (email) {
     const customerBody = [
@@ -337,7 +353,7 @@ function sendCancelNotificationEmails_(row, headers, orderCode) {
       "Nếu đây không phải yêu cầu của bạn hoặc cần hỗ trợ thêm, vui lòng gọi hotline 091 815 9870.", "",
       "Cửa Hàng Minh Hiền"
     ].join("\n");
-    MailApp.sendEmail(email, "Đơn hàng " + orderCode + " đã được huỷ - Cửa Hàng Minh Hiền", customerBody);
+    sendEmailSafe_(email, "Đơn hàng " + orderCode + " đã được huỷ - Cửa Hàng Minh Hiền", customerBody);
   }
 }
 
