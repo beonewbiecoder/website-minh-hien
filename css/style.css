@@ -138,6 +138,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   padding: 0 5px; border: 2px solid var(--white);
 }
 .nav-toggle{ display: none; }
+.main-nav-close{ display: none; }
 
 /* Ngưỡng riêng cho main-nav (1150px) — rộng hơn các breakpoint 900px khác trong
    file này (đừng nhầm gộp chung), vì thêm mục "Đơn hàng của tôi" nên 6 mục menu
@@ -171,6 +172,17 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
   }
   #account-slot-mobile .account-menu{ left: 0; right: auto; }
+
+  /* Nút X đóng menu — nằm cố định góc trên phải trong menu mobile toàn màn hình,
+     để bấm đóng theo bản năng thay vì phải nhớ bấm lại icon 3 sọc trên header. */
+  .main-nav-close{
+    display: flex; position: absolute; top: 16px; right: 16px;
+    width: 40px; height: 40px; border-radius: 10px;
+    align-items: center; justify-content: center;
+    background: var(--bg); border: 1px solid var(--border);
+    font-size: 1.1rem; color: var(--navy-dark); cursor: pointer; z-index: 1;
+  }
+  .main-nav-close:hover{ background: #eef1f4; }
 }
 @media (min-width: 1151px){
   #account-slot-mobile{ display: none; }
@@ -1028,6 +1040,15 @@ body.checkout-page .ai-chat-bubble{ display: none !important; }
   margin-top: 4px; border-top: 1px solid var(--border);
 }
 .account-menu button:hover{ background: #fdeeec; }
+
+.checkout-login-prompt{
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.checkout-login-prompt-active{ background: var(--success-bg); border-color: #bfe4cd; }
+.checkout-login-prompt-text strong{ color: var(--navy-dark); }
+.checkout-login-prompt-active .checkout-login-prompt-text strong{ color: var(--success); }
+.checkout-login-prompt-actions{ display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 
 .account-login-options{ display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .account-email-link-btn{

@@ -158,6 +158,34 @@ function saveOrder(data) {
     "[Đơn hàng mới] " + (data.orderCode ? data.orderCode + " - " : "") + data.name + " - " + (data.total || 0) + "đ",
     body
   );
+
+  // Chỉ gửi được cho khách nếu họ đã đăng nhập (mới có email) — khách vãng lai
+  // không nhập email nên bỏ qua, không lỗi gì.
+  if (data.email) {
+    const paymentNote = data.payment === "bank"
+      ? "Vui lòng hoàn tất chuyển khoản theo thông tin đã hiện trên website — cửa hàng sẽ xác nhận và gọi điện sau khi nhận được tiền."
+      : "Nhân viên sẽ gọi điện xác nhận đơn hàng trước khi giao.";
+    const customerBody = [
+      "Cảm ơn bạn đã đặt hàng tại Cửa Hàng Minh Hiền!", "",
+      "Mã đơn hàng: " + (data.orderCode || ""),
+      "Trạng thái: " + status, "",
+      "Sản phẩm:", itemsText, "",
+      "Phí vận chuyển: " + (data.shippingFee || 0) + "đ",
+      "Tổng tiền: " + (data.total || 0) + "đ", "",
+      "Hình thức nhận hàng: " + fulfillmentLabel,
+      "Địa chỉ: " + (data.address || "(tới lấy tại cửa hàng)"),
+      "Thanh toán: " + paymentLabel, "",
+      paymentNote, "",
+      "Xem lại đơn hàng bất cứ lúc nào tại: https://beonewbiecoder.github.io/website-minh-hien/don-hang-cua-toi.html", "",
+      "Cần hỗ trợ, gọi hotline 091 815 9870 hoặc nhắn Zalo.",
+      "Cửa Hàng Minh Hiền"
+    ].join("\n");
+    MailApp.sendEmail(
+      data.email,
+      "Xác nhận đơn hàng " + (data.orderCode || "") + " - Cửa Hàng Minh Hiền",
+      customerBody
+    );
+  }
 }
 
 // Xác thực lại idToken Firebase với chính máy chủ Google (Identity Toolkit) —
@@ -266,9 +294,51 @@ function handleCancelOrder_(data) {
     try { items = JSON.parse(row[idx("Chi tiết SP (JSON)")] || "[]"); } catch (e) { items = []; }
     adjustStockForItems_(items, 1);
 
+    sendCancelNotificationEmails_(row, headers, orderCode);
+
     return jsonOutput_({ success: true });
   }
   return jsonOutput_({ success: false, error: "Không tìm thấy đơn hàng." });
+}
+
+// Gửi email báo huỷ đơn — 1 bản cho chủ shop (bôi đỏ để dễ nhận ra ngay trong
+// hộp thư, khác hẳn email "Đơn hàng mới" bình thường) và 1 bản cho khách (nếu
+// đơn có email, tức khách đã đăng nhập lúc đặt).
+function sendCancelNotificationEmails_(row, headers, orderCode) {
+  const idx = function (name) { return headers.indexOf(name); };
+  const name = row[idx("Họ tên")] || "";
+  const phone = row[idx("Điện thoại")] || "";
+  const email = row[idx("Email")] || "";
+  const itemsText = row[idx("Sản phẩm")] || "";
+  const total = row[idx("Tổng tiền")] || 0;
+
+  const shopPlainBody = [
+    "Đơn hàng " + orderCode + " VỪA BỊ HUỶ bởi khách hàng.", "",
+    "Khách hàng: " + name,
+    "Điện thoại: " + phone,
+    "Email: " + (email || "(không có)"), "",
+    "Sản phẩm:", itemsText, "",
+    "Tổng tiền: " + total + "đ"
+  ].join("\n");
+  const shopHtmlBody = ""
+    + '<div style="background:#fdeeec;color:#b3392f;padding:14px 18px;border-radius:8px;'
+    + 'font-weight:bold;font-size:16px;margin-bottom:16px;">⚠ ĐƠN HÀNG ĐÃ BỊ HUỶ BỞI KHÁCH HÀNG</div>'
+    + '<p><b>Mã đơn hàng:</b> ' + orderCode + '</p>'
+    + '<p><b>Khách hàng:</b> ' + name + '<br><b>Điện thoại:</b> ' + phone + '<br><b>Email:</b> ' + (email || "(không có)") + '</p>'
+    + '<p><b>Sản phẩm:</b><br>' + String(itemsText).replace(/\n/g, "<br>") + '</p>'
+    + '<p><b>Tổng tiền:</b> ' + total + 'đ</p>';
+  MailApp.sendEmail(NOTIFY_EMAIL, "[ĐÃ HUỶ] Đơn hàng " + orderCode, shopPlainBody, { htmlBody: shopHtmlBody });
+
+  if (email) {
+    const customerBody = [
+      "Đơn hàng " + orderCode + " của bạn đã được huỷ theo yêu cầu.", "",
+      "Sản phẩm:", itemsText, "",
+      "Tổng tiền: " + total + "đ", "",
+      "Nếu đây không phải yêu cầu của bạn hoặc cần hỗ trợ thêm, vui lòng gọi hotline 091 815 9870.", "",
+      "Cửa Hàng Minh Hiền"
+    ].join("\n");
+    MailApp.sendEmail(email, "Đơn hàng " + orderCode + " đã được huỷ - Cửa Hàng Minh Hiền", customerBody);
+  }
 }
 
 // Trigger đơn giản (tự chạy, KHÔNG cần bật gì thêm trong Apps Script) — khi

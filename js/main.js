@@ -82,15 +82,18 @@ function postToAppsScriptJSON(payload){
 function initNav(){
   const toggle = document.querySelector(".nav-toggle");
   const nav = document.querySelector(".main-nav");
+  const closeBtn = document.querySelector(".main-nav-close");
+  function closeNav(){
+    nav.classList.remove("open");
+    document.body.classList.remove("nav-open");
+  }
   if(toggle && nav){
     toggle.addEventListener("click", () => {
       nav.classList.toggle("open");
       document.body.classList.toggle("nav-open", nav.classList.contains("open"));
     });
-    nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
-      nav.classList.remove("open");
-      document.body.classList.remove("nav-open");
-    }));
+    nav.querySelectorAll("a").forEach(a => a.addEventListener("click", closeNav));
+    if(closeBtn) closeBtn.addEventListener("click", closeNav);
   }
   // highlight active link
   const path = location.pathname.split("/").pop() || "index.html";
@@ -101,6 +104,19 @@ function initNav(){
   if(yearEl) yearEl.textContent = new Date().getFullYear();
 }
 document.addEventListener("DOMContentLoaded", initNav);
+
+// Bấm liên tục vào link Zalo đôi khi làm zalo.me tự báo lỗi (do mở nhiều tab
+// cùng lúc) — chặn bớt nếu bấm lại quá nhanh, không sửa được lỗi phía Zalo
+// nhưng giảm hẳn khả năng gặp phải.
+let __lastZaloClickTs_ = 0;
+function guardZaloClick_(e){
+  const now = Date.now();
+  if(now - __lastZaloClickTs_ < 2000){
+    e.preventDefault();
+    return;
+  }
+  __lastZaloClickTs_ = now;
+}
 
 /* ---------- Thanh liên hệ nhanh (mobile) — gọi điện + Zalo ---------- */
 function renderContactBar(){
@@ -124,6 +140,7 @@ function renderContactBar(){
     </a>
   `;
   document.body.appendChild(bar);
+  bar.querySelector(".contact-bar-zalo").addEventListener("click", guardZaloClick_);
 
   if(!document.getElementById("desktop-contact-fab")){
     const fab = document.createElement("div");
@@ -140,6 +157,7 @@ function renderContactBar(){
       </a>
     `;
     document.body.appendChild(fab);
+    fab.querySelector(".fab-zalo").addEventListener("click", guardZaloClick_);
   }
 }
 document.addEventListener("DOMContentLoaded", renderContactBar);
@@ -280,7 +298,9 @@ function renderAIChatWidget(){
       });
   });
 
-  escalateBtn.addEventListener("click", function(){
+  escalateBtn.addEventListener("click", function(e){
+    guardZaloClick_(e);
+    if(e.defaultPrevented) return;
     postToAppsScript({ type: "chat_escalate", sessionId: getAiChatSessionId_(), lastMessage: lastUserMessage });
     addMessage("Mình đã mở Zalo giúp bạn, bạn nhắn tiếp cho nhân viên nhé!", "bot");
     window.open(zaloUrl, "_blank");

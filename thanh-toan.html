@@ -28,6 +28,7 @@
       <span>CỬA HÀNG MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
     </a>
     <nav class="main-nav">
+      <button type="button" class="main-nav-close" aria-label="Đóng menu">✕</button>
       <div id="account-slot-mobile"></div>
       <a href="index.html">Trang chủ</a>
       <a href="san-pham.html">Sản phẩm</a>
@@ -125,6 +126,7 @@ function renderCheckout(){
 
   wrap.innerHTML = `
     <form id="order-form" novalidate>
+      <div class="form-card checkout-login-prompt" id="checkout-login-prompt"></div>
       <div class="cart-wrap">
         <div>
           <div class="form-card checkout-block">
@@ -219,6 +221,30 @@ function renderCheckout(){
   onAuthChange(user => {
     const nameInput = document.getElementById("f-name");
     if(user && nameInput && !nameInput.value) nameInput.value = user.displayName || "";
+
+    const promptEl = document.getElementById("checkout-login-prompt");
+    if(!promptEl) return;
+    if(user){
+      promptEl.classList.add("checkout-login-prompt-active");
+      promptEl.innerHTML = `
+        <div class="checkout-login-prompt-text">
+          <strong>✓ Đã đăng nhập: ${user.displayName || user.email}</strong>
+          <p class="muted" style="margin:4px 0 0;">Đơn hàng này sẽ tự lưu vào "Đơn hàng của tôi", và bạn sẽ nhận email xác nhận.</p>
+        </div>`;
+    }else{
+      promptEl.classList.remove("checkout-login-prompt-active");
+      promptEl.innerHTML = `
+        <div class="checkout-login-prompt-text">
+          <strong>Đăng nhập để lưu lại đơn hàng này</strong>
+          <p class="muted" style="margin:4px 0 0;">Nhận email xác nhận, dễ theo dõi và huỷ đơn sau này — không đăng nhập vẫn đặt hàng bình thường.</p>
+        </div>
+        <div class="checkout-login-prompt-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="checkout-login-google">Đăng nhập Google</button>
+          <button type="button" class="account-email-link-btn" id="checkout-login-email">hoặc dùng email</button>
+        </div>`;
+      document.getElementById("checkout-login-google").addEventListener("click", signInWithGoogle);
+      document.getElementById("checkout-login-email").addEventListener("click", openEmailAuthModal);
+    }
   });
 
   function currentShippingFee(){
