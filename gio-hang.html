@@ -113,7 +113,7 @@ function renderCartPage(){
       <div>
         <a href="san-pham-chi-tiet.html?id=${i.product.id}" class="name">${i.product.name}</a>
         <div class="unit">${i.product.size} · ${formatVND(i.product.price)} / ${i.product.unit}</div>
-        <button type="button" class="remove-btn" data-remove="${i.product.id}">Xóa</button>
+        <button type="button" class="remove-btn" data-remove="${i.product.id}" data-name="${i.product.name}">Xóa</button>
       </div>
       <div class="qty-picker">
         <button type="button" data-minus="${i.product.id}">−</button>
@@ -142,7 +142,12 @@ function renderCartPage(){
   `;
 
   wrap.querySelectorAll("[data-remove]").forEach(btn => {
-    btn.addEventListener("click", () => { removeFromCart(btn.dataset.remove); renderCartPage(); });
+    btn.addEventListener("click", () => {
+      if(confirm(`Xóa "${btn.dataset.name}" khỏi giỏ hàng?`)){
+        removeFromCart(btn.dataset.remove);
+        renderCartPage();
+      }
+    });
   });
   wrap.querySelectorAll("[data-minus]").forEach(btn => {
     btn.addEventListener("click", () => {

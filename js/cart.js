@@ -77,6 +77,26 @@ function updateCartBadges(){
   });
 }
 
+/* =========================================================
+   Chuyển khoản QR (VietQR) — dùng ở trang thanh toán
+   ========================================================= */
+
+// Mã đơn hàng ngắn gọn, không dấu, tối đa 20 ký tự — dùng làm nội dung chuyển khoản
+// để đối chiếu đơn hàng nào đã thanh toán khi kiểm tra sao kê ngân hàng.
+function generateOrderCode(){
+  const ts = Date.now().toString().slice(-8);
+  const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return ("DH" + ts + rand).slice(0, 20);
+}
+
+function buildVietQrUrl(amount, note){
+  const bank = typeof VIETQR_BANK_CODE !== "undefined" ? VIETQR_BANK_CODE : "";
+  const acc = typeof VIETQR_ACCOUNT_NO !== "undefined" ? VIETQR_ACCOUNT_NO : "";
+  const name = typeof VIETQR_ACCOUNT_NAME !== "undefined" ? VIETQR_ACCOUNT_NAME : "";
+  if(!bank || !acc) return "";
+  return `https://img.vietqr.io/image/${bank}-${acc}-compact.png?amount=${Math.round(amount)}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(name)}`;
+}
+
 function showToast(message){
   let toast = document.querySelector(".toast");
   if(!toast){

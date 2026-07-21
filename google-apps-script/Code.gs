@@ -74,26 +74,40 @@ function getSheet_(name) {
 function saveOrder(data) {
   const sheet = getSheet_(SHEET_ORDERS);
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["Thời gian", "Họ tên", "Điện thoại", "Email", "Địa chỉ", "Ghi chú", "Sản phẩm", "Tổng tiền"]);
+    sheet.appendRow([
+      "Thời gian", "Mã đơn hàng", "Họ tên", "Điện thoại", "Hình thức nhận hàng",
+      "Địa chỉ", "Phương thức thanh toán", "Ghi chú", "Sản phẩm", "Tổng tiền"
+    ]);
   }
   const itemsText = (data.items || [])
     .map(function (i) { return i.name + " (" + i.size + ") x" + i.qty + " " + i.unit + " = " + i.lineTotal + "đ"; })
     .join("\n");
+  const fulfillmentLabel = data.fulfillment === "pickup" ? "Tới lấy tại cửa hàng" : "Giao hàng tận nơi";
+  const paymentLabel = data.payment === "bank" ? "Chuyển khoản ngân hàng" : "Thanh toán khi nhận hàng (COD)";
+
   sheet.appendRow([
-    new Date(), data.name || "", data.phone || "", data.email || "",
-    data.address || "", data.note || "", itemsText, data.total || 0
+    new Date(), data.orderCode || "", data.name || "", data.phone || "",
+    fulfillmentLabel, data.address || "", paymentLabel, data.note || "",
+    itemsText, data.total || 0
   ]);
 
   const body = [
     "Có đơn hàng mới từ website!", "",
+    "Mã đơn hàng: " + (data.orderCode || "(không có)"),
     "Khách hàng: " + data.name,
     "Điện thoại: " + data.phone,
-    "Địa chỉ: " + (data.address || "(chưa cung cấp)"),
+    "Hình thức nhận hàng: " + fulfillmentLabel,
+    "Địa chỉ: " + (data.address || "(tới lấy tại cửa hàng)"),
+    "Thanh toán: " + paymentLabel,
     "Ghi chú: " + (data.note || "(không có)"), "",
     "Sản phẩm:", itemsText, "",
     "Tổng tiền: " + (data.total || 0) + "đ"
   ].join("\n");
-  MailApp.sendEmail(NOTIFY_EMAIL, "[Đơn hàng mới] " + data.name + " - " + (data.total || 0) + "đ", body);
+  MailApp.sendEmail(
+    NOTIFY_EMAIL,
+    "[Đơn hàng mới] " + (data.orderCode ? data.orderCode + " - " : "") + data.name + " - " + (data.total || 0) + "đ",
+    body
+  );
 }
 
 function saveContact(data) {

@@ -133,19 +133,17 @@ function renderProductDetail(){
         <p class="muted">${product.desc}</p>
         <div class="pd-price">${formatVND(product.price)} <small style="font-size:1rem;font-weight:500;color:var(--text-muted)">/ ${product.unit}</small></div>
 
+        <div class="pd-buy-row">
+          <div class="qty-picker">
+            <button type="button" id="qty-minus" aria-label="Giảm số lượng">−</button>
+            <input type="number" id="qty-input" value="1" min="1" aria-label="Số lượng (${product.unit})">
+            <button type="button" id="qty-plus" aria-label="Tăng số lượng">+</button>
+          </div>
+          <button class="btn btn-primary btn-lg pd-add-btn" id="add-to-cart-btn">Thêm vào giỏ hàng</button>
+        </div>
+        <a href="tel:0918159870" class="btn btn-outline btn-block" style="margin-top:10px;">Gọi tư vấn nhanh</a>
+
         <div class="pd-meta">${specsHTML}</div>
-
-        <label style="font-weight:600;font-size:.92rem;">Số lượng (${product.unit})</label>
-        <div class="qty-picker" style="margin-top:8px;">
-          <button type="button" id="qty-minus">−</button>
-          <input type="number" id="qty-input" value="1" min="1">
-          <button type="button" id="qty-plus">+</button>
-        </div>
-
-        <div class="pd-actions">
-          <button class="btn btn-primary btn-lg" id="add-to-cart-btn">Thêm vào giỏ hàng</button>
-          <a href="tel:0918159870" class="btn btn-outline btn-lg">Gọi tư vấn nhanh</a>
-        </div>
 
         <div class="trust-row">
           <div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Bảo hành theo tiêu chuẩn nhà sản xuất</div>

@@ -23,3 +23,11 @@ const CONTACT_HOURS = "Thứ Hai – Thứ Bảy: 7:00 – 17:00";
 /* Link Google Maps trỏ đúng Google Business Profile đã tạo (không phải geocode theo địa chỉ chữ) */
 const MAPS_URL = "https://maps.app.goo.gl/xZ1LxMxwxvJL9X4x6";
 const MAPS_EMBED_URL = "https://www.google.com/maps?q=10.754757,106.6448351&output=embed";
+
+/* =========================================================
+   TÀI KHOẢN NHẬN CHUYỂN KHOẢN (hiện QR VietQR ở trang thanh toán)
+   Đổi tài khoản chỉ cần sửa 3 biến này, không sửa chỗ nào khác.
+   ========================================================= */
+const VIETQR_BANK_CODE = "ACB";
+const VIETQR_ACCOUNT_NO = "68329168";
+const VIETQR_ACCOUNT_NAME = "BANH THUC HIEN";
