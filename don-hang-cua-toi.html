@@ -138,8 +138,8 @@ function renderLoadError(message){
 
 function statusInfo(status){
   const map = {
-    "Chờ xác nhận thanh toán": { cls: "status-cho-xac-nhan", cancelable: true },
-    "Đã xác nhận — đang chuẩn bị hàng": { cls: "status-dang-chuan-bi", cancelable: true },
+    "Chờ xác nhận": { cls: "status-cho-xac-nhan", cancelable: true },
+    "Đã xác nhận — đang chuẩn bị hàng": { cls: "status-dang-chuan-bi", cancelable: false, showHelp: true },
     "Đang giao": { cls: "status-dang-giao", cancelable: false, showHelp: true },
     "Hoàn tất": { cls: "status-hoan-tat", cancelable: false, showHelp: true },
     "Đã huỷ": { cls: "status-da-huy", cancelable: false }

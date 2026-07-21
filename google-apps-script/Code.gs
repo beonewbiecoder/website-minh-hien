@@ -36,13 +36,16 @@ const SHEET_CHATLOG = "ChatLog";
 
 // Các trạng thái đơn hàng chuẩn hoá — dùng đúng các chuỗi này ở mọi nơi
 // (Sheet, email, trang "Đơn hàng của tôi") để so khớp chính xác.
-const STATUS_CHO_XAC_NHAN = "Chờ xác nhận thanh toán";
+const STATUS_CHO_XAC_NHAN = "Chờ xác nhận";
 const STATUS_DANG_CHUAN_BI = "Đã xác nhận — đang chuẩn bị hàng";
 const STATUS_DANG_GIAO = "Đang giao";
 const STATUS_HOAN_TAT = "Hoàn tất";
 const STATUS_DA_HUY = "Đã huỷ";
-// Chỉ 2 trạng thái đầu (chưa giao) mới cho khách tự huỷ ở trang "Đơn hàng của tôi"
-const CANCELABLE_STATUSES = [STATUS_CHO_XAC_NHAN, STATUS_DANG_CHUAN_BI];
+// Chỉ cho khách tự huỷ khi đơn còn ở "Chờ xác nhận" — tức là CHƯA có nhân viên
+// gọi điện xác nhận thật. Ngay khi chủ shop tự tay đổi trạng thái sang
+// "Đã xác nhận — đang chuẩn bị hàng" (sau cuộc gọi xác nhận thật), nút huỷ biến
+// mất, áp dụng cho cả đơn COD lẫn chuyển khoản như nhau.
+const CANCELABLE_STATUSES = [STATUS_CHO_XAC_NHAN];
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const SYSTEM_PROMPT = "Bạn là trợ lý tư vấn của cửa hàng Minh Hiền Hydraulics, chuyên ống thủy lực và rắc co. " +
@@ -126,9 +129,11 @@ function saveOrder(data) {
     .join("\n");
   const fulfillmentLabel = data.fulfillment === "pickup" ? "Tới lấy tại cửa hàng" : "Giao hàng tận nơi";
   const paymentLabel = data.payment === "bank" ? "Chuyển khoản ngân hàng" : "Thanh toán khi nhận hàng (COD)";
-  // COD xác nhận ngay vì không cần chờ tiền về. Chuyển khoản phải chờ chủ shop
-  // tự kiểm tra sao kê rồi mới đổi trạng thái thủ công trong Sheet.
-  const status = data.payment === "bank" ? STATUS_CHO_XAC_NHAN : STATUS_DANG_CHUAN_BI;
+  // Mọi đơn (COD lẫn chuyển khoản) đều bắt đầu ở "Chờ xác nhận" — chủ shop
+  // luôn gọi điện xác nhận thật với khách trước, rồi mới tự tay đổi trạng thái
+  // sang "Đã xác nhận — đang chuẩn bị hàng" trong Sheet (lúc đó khách mới hết
+  // nút tự huỷ đơn).
+  const status = STATUS_CHO_XAC_NHAN;
   const itemsJson = JSON.stringify(data.items || []);
 
   sheet.appendRow([
