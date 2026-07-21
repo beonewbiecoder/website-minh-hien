@@ -162,6 +162,18 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     flex-direction: column; gap: 4px;
   }
   .nav-toggle span{ width: 20px; height: 2px; background: var(--navy-dark); display: block; }
+
+  /* Nút tài khoản chuyển hẳn vào bên trong menu 3 sọc trên mobile — không
+     chen chung với icon giỏ hàng trên thanh header nữa, tránh chật/vỡ layout. */
+  #account-slot{ display: none; }
+  #account-slot-mobile{
+    display: block; align-self: flex-start;
+    margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  #account-slot-mobile .account-menu{ left: 0; right: auto; }
+}
+@media (min-width: 1151px){
+  #account-slot-mobile{ display: none; }
 }
 @media (max-width: 900px){
   .topbar-links{ font-size: .8rem; gap: 12px; }
@@ -1016,6 +1028,40 @@ body.checkout-page .ai-chat-bubble{ display: none !important; }
   margin-top: 4px; border-top: 1px solid var(--border);
 }
 .account-menu button:hover{ background: #fdeeec; }
+
+.account-login-options{ display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.account-email-link-btn{
+  background: none; border: none; font-family: inherit; font-size: .78rem; font-weight: 600;
+  color: var(--text-muted); text-decoration: underline; cursor: pointer; padding: 0;
+}
+.account-email-link-btn:hover{ color: var(--navy); }
+
+/* ---------- Khung đăng nhập bằng email/mật khẩu ---------- */
+.email-auth-backdrop{
+  position: fixed; inset: 0; background: rgba(10, 30, 48, .35); z-index: 210; display: none;
+}
+body.email-auth-open .email-auth-backdrop{ display: block; }
+.email-auth-modal{
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 211; display: none; width: min(400px, calc(100vw - 32px));
+  background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  padding: 28px; max-height: 90vh; overflow-y: auto;
+}
+body.email-auth-open .email-auth-modal{ display: block; }
+.email-auth-modal h3{ margin: 0 0 18px; padding-right: 30px; }
+.email-auth-close{
+  position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 8px;
+  background: var(--bg); border: none; font-size: 1rem; cursor: pointer;
+}
+.email-auth-error{
+  background: #fdeeec; color: #b3392f; border-radius: var(--radius); padding: 10px 12px;
+  font-size: .85rem; margin-bottom: 14px;
+}
+.email-auth-link{
+  display: block; width: 100%; text-align: center; background: none; border: none;
+  color: var(--navy); font-weight: 600; font-size: .88rem; padding: 10px 0; cursor: pointer; font-family: inherit;
+}
+.email-auth-link:hover{ text-decoration: underline; }
 
 /* ---------- Trạng thái đơn hàng ---------- */
 .status-badge{

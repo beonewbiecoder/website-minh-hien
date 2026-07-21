@@ -28,6 +28,7 @@
       <span>CỬA HÀNG MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
     </a>
     <nav class="main-nav">
+      <div id="account-slot-mobile"></div>
       <a href="index.html">Trang chủ</a>
       <a href="san-pham.html">Sản phẩm</a>
       <a href="gioi-thieu.html">Giới thiệu</a>
@@ -105,8 +106,11 @@ function renderLoginGate(){
     <div class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;color:var(--text-muted)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <h3>Đăng nhập để xem đơn hàng của bạn</h3>
-      <p>Đăng nhập bằng Google để tra cứu lại các đơn đã đặt và trạng thái xử lý mới nhất.</p>
-      <button type="button" class="btn btn-primary btn-lg" id="gate-login-btn" style="margin-top:14px;">Đăng nhập Google</button>
+      <p>Đăng nhập bằng Google hoặc email để tra cứu lại các đơn đã đặt và trạng thái xử lý mới nhất.</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px;">
+        <button type="button" class="btn btn-primary btn-lg" id="gate-login-btn">Đăng nhập Google</button>
+        <button type="button" class="account-email-link-btn" id="gate-email-btn">hoặc đăng nhập bằng email</button>
+      </div>
     </div>`;
   const btn = document.getElementById("gate-login-btn");
   if(!isFirebaseConfigured()){
@@ -114,6 +118,7 @@ function renderLoginGate(){
   }else{
     btn.addEventListener("click", signInWithGoogle);
   }
+  document.getElementById("gate-email-btn").addEventListener("click", openEmailAuthModal);
 }
 
 function renderLoading(){
