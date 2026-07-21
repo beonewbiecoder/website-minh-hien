@@ -114,10 +114,10 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 }
 .logo small{ display: block; font-size: .68rem; font-weight: 500; color: var(--text-muted); }
 
-.main-nav{ display: flex; align-items: center; gap: 4px; }
+.main-nav{ display: flex; align-items: center; gap: 2px; }
 .main-nav a{
-  padding: 10px 14px; border-radius: 8px; font-weight: 600; color: var(--navy-dark);
-  font-size: .97rem;
+  padding: 10px 10px; border-radius: 8px; font-weight: 600; color: var(--navy-dark);
+  font-size: .92rem; white-space: nowrap;
 }
 .main-nav a:hover, .main-nav a.active{ background: var(--bg); color: var(--accent-dark); }
 
@@ -139,7 +139,10 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 }
 .nav-toggle{ display: none; }
 
-@media (max-width: 900px){
+/* Ngưỡng riêng cho main-nav (1150px) — rộng hơn các breakpoint 900px khác trong
+   file này (đừng nhầm gộp chung), vì thêm mục "Đơn hàng của tôi" nên 6 mục menu
+   cần nhiều chỗ hơn, tránh bị vỡ chữ ở các màn hình desktop cỡ vừa. */
+@media (max-width: 1150px){
   .main-nav{
     position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0;
     background: var(--white);
@@ -151,7 +154,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     z-index: 99;
   }
   .main-nav.open{ transform: translateY(0); }
-  .main-nav a{ padding: 14px 16px; font-size: 1.05rem; border-bottom: 1px solid var(--border); }
+  .main-nav a{ padding: 14px 16px; font-size: 1.05rem; border-bottom: 1px solid var(--border); white-space: normal; }
   .nav-toggle{
     display: flex; width: 46px; height: 46px; border-radius: 10px;
     align-items: center; justify-content: center;
@@ -159,6 +162,8 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
     flex-direction: column; gap: 4px;
   }
   .nav-toggle span{ width: 20px; height: 2px; background: var(--navy-dark); display: block; }
+}
+@media (max-width: 900px){
   .topbar-links{ font-size: .8rem; gap: 12px; }
 }
 
