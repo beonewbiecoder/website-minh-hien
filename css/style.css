@@ -448,7 +448,9 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 22px; position: sticky; top: calc(var(--header-h) + 20px);
 }
-.summary-row{ display: flex; justify-content: space-between; padding: 8px 0; color: var(--text-muted); }
+.summary-row{ display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; color: var(--text-muted); }
+.summary-row span:first-child{ flex: 1; min-width: 0; }
+.summary-row span:last-child{ flex-shrink: 0; text-align: right; }
 .summary-row.total{ font-size: 1.2rem; font-weight: 800; color: var(--navy-dark); border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px; }
 .summary-row.total span:last-child{ color: var(--accent-dark); }
 
@@ -488,6 +490,10 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 
 .success-box{
   text-align: center; background: var(--success-bg); border: 1px solid #bfe4cd; color: var(--success);
+  border-radius: var(--radius-lg); padding: 40px 24px;
+}
+.pending-box{
+  text-align: center; background: #fff6de; border: 1px solid #f2dd9a; color: #8a6d1a;
   border-radius: var(--radius-lg); padding: 40px 24px;
 }
 
@@ -944,10 +950,11 @@ body.ai-chat-open .ai-chat-panel{ display: flex; }
 .order-summary-details summary::after{ content: "▾"; color: var(--text-muted); }
 .order-summary-details[open] summary::after{ content: "▴"; }
 .order-summary-line{
-  display: flex; justify-content: space-between; gap: 10px; padding: 10px 16px;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 16px;
   border-top: 1px solid var(--border); font-size: .92rem;
 }
-.order-summary-line span:first-child{ color: var(--text-muted); }
+.order-summary-line span:first-child{ color: var(--text-muted); flex: 1; min-width: 0; }
+.order-summary-line span:last-child{ flex-shrink: 0; text-align: right; }
 
 .qr-block{
   margin-top: 16px; padding: 20px; background: var(--bg); border-radius: var(--radius-lg);
@@ -976,6 +983,73 @@ body.checkout-page .ai-chat-bubble{ display: none !important; }
 @media (max-width: 560px){
   .checkout-sticky-bar .btn{ min-width: 0; flex: 1; }
   .checkout-sticky-bar .csb-total b{ font-size: 1.05rem; }
+}
+
+/* ---------- Tài khoản (đăng nhập Google) ---------- */
+.account-menu-wrap{ position: relative; }
+.account-avatar-btn{
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg); overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center;
+}
+.account-avatar-btn img{ width: 100%; height: 100%; object-fit: cover; }
+.account-avatar-btn span{ font-weight: 800; color: var(--navy); font-size: 1.1rem; }
+.account-menu{
+  display: none; position: absolute; top: calc(100% + 10px); right: 0; z-index: 160;
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); padding: 14px; min-width: 220px;
+}
+.account-menu.open{ display: block; }
+.account-menu-name{ font-weight: 700; color: var(--navy-dark); }
+.account-menu-email{ color: var(--text-muted); font-size: .82rem; margin-bottom: 10px; word-break: break-all; }
+.account-menu a{
+  display: block; padding: 10px 8px; border-radius: var(--radius); font-weight: 600; font-size: .92rem;
+}
+.account-menu a:hover{ background: var(--bg); }
+.account-menu button{
+  display: block; width: 100%; text-align: left; padding: 10px 8px; border-radius: var(--radius);
+  background: none; border: none; font-family: inherit; font-size: .92rem; font-weight: 600; color: #b3392f;
+  margin-top: 4px; border-top: 1px solid var(--border);
+}
+.account-menu button:hover{ background: #fdeeec; }
+
+/* ---------- Trạng thái đơn hàng ---------- */
+.status-badge{
+  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px;
+  font-size: .8rem; font-weight: 700; white-space: nowrap;
+}
+.status-cho-xac-nhan{ background: #fff6de; color: #8a6d1a; }
+.status-dang-chuan-bi{ background: #e6f0fb; color: #1f4e8c; }
+.status-dang-giao{ background: #e6f0fb; color: #1f4e8c; }
+.status-hoan-tat{ background: var(--success-bg); color: var(--success); }
+.status-da-huy{ background: #fdeeec; color: #b3392f; }
+
+/* ---------- Đơn hàng của tôi ---------- */
+.order-card{
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px; margin-bottom: 16px;
+}
+.order-card-head{ display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.order-card-code{ font-weight: 800; color: var(--navy-dark); }
+.order-card-date{ color: var(--text-muted); font-size: .85rem; }
+.order-card-items{ font-size: .92rem; color: var(--text-muted); margin: 10px 0; }
+.order-card-items div{ display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 3px 0; }
+.order-card-items div span:first-child{ flex: 1; min-width: 0; }
+.order-card-items div span:last-child{ flex-shrink: 0; white-space: nowrap; }
+.order-card-foot{ display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.order-card-total{ font-weight: 800; font-size: 1.05rem; color: var(--navy-dark); }
+
+/* ---------- Spinner nút submit ---------- */
+.btn-spinner{
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff; animation: btn-spin .7s linear infinite; display: inline-block;
+}
+@keyframes btn-spin{ to{ transform: rotate(360deg); } }
+
+/* ---------- Tồn kho ---------- */
+.stock-low{ color: var(--accent-dark); font-size: .82rem; font-weight: 700; margin-top: 4px; }
+.stock-out-badge{
+  display: inline-block; background: #e9edf1; color: var(--text-muted);
+  font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
 }
 
 /* ---------- Toast ---------- */

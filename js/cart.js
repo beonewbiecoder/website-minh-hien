@@ -20,26 +20,52 @@ function saveCart(cart){
   updateCartBadges();
 }
 
+// Tồn kho chưa xác định (sản phẩm cũ chưa có trường stock) coi như không giới hạn
+function getProductStock(product){
+  return (product && typeof product.stock === "number" && !isNaN(product.stock)) ? product.stock : Infinity;
+}
+
+// Trả về { added, capped, stock, qty } — capped=true nghĩa là số lượng đã bị
+// chặn bớt lại đúng bằng tồn kho hiện có, để trang gọi hàm này hiện toast phù hợp.
 function addToCart(id, qty){
   qty = Math.max(1, parseInt(qty) || 1);
+  const product = findProduct(id);
+  const stock = getProductStock(product);
   const cart = getCart();
   const existing = cart.find(item => item.id === id);
+  const currentQty = existing ? existing.qty : 0;
+  let desiredQty = currentQty + qty;
+  let capped = false;
+  if(desiredQty > stock){
+    desiredQty = stock;
+    capped = true;
+  }
+  if(desiredQty <= 0) return { added: false, capped: true, stock, qty: 0 };
   if(existing){
-    existing.qty += qty;
+    existing.qty = desiredQty;
   }else{
-    cart.push({ id, qty });
+    cart.push({ id, qty: desiredQty });
   }
   saveCart(cart);
+  return { added: true, capped, stock, qty: desiredQty };
 }
 
 function updateCartQty(id, qty){
   qty = Math.max(1, parseInt(qty) || 1);
+  const product = findProduct(id);
+  const stock = getProductStock(product);
+  let capped = false;
+  if(qty > stock){
+    qty = stock;
+    capped = true;
+  }
   const cart = getCart();
   const item = cart.find(i => i.id === id);
   if(item){
     item.qty = qty;
     saveCart(cart);
   }
+  return { capped, stock, qty };
 }
 
 function removeFromCart(id){
@@ -87,6 +113,16 @@ function generateOrderCode(){
   const ts = Date.now().toString().slice(-8);
   const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
   return ("DH" + ts + rand).slice(0, 20);
+}
+
+// Phí ship theo khu vực — mức cố định tạm thời (xem SHIPPING_FEES/SHIPPING_ZONES
+// trong js/config.js). Sau này thay bằng API tính phí thật (GHN/GHTK) thì chỉ
+// cần sửa hàm này, chỗ gọi nó ở thanh-toan.html không cần đổi gì.
+function getShippingFee(zoneName){
+  if(typeof SHIPPING_ZONES === "undefined" || typeof SHIPPING_FEES === "undefined") return 0;
+  const zone = SHIPPING_ZONES.find(z => z.name === zoneName);
+  if(!zone) return 0;
+  return SHIPPING_FEES[zone.tier] || 0;
 }
 
 function buildVietQrUrl(amount, note){

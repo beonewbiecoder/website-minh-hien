@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đơn hàng của tôi — Cửa Hàng Minh Hiền</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <a href="tel:0918159870">📞 Hotline: 091 815 9870</a>
+        <a href="lien-he.html">Hệ thống cửa hàng</a>
+      </div>
+      <div class="topbar-links">
+        <a href="lien-he.html">Giao hàng toàn quốc · Tư vấn kỹ thuật miễn phí</a>
+      </div>
+    </div>
+  </div>
+  <div class="container header-main">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">MH</span>
+      <span>CỬA HÀNG MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Trang chủ</a>
+      <a href="san-pham.html">Sản phẩm</a>
+      <a href="gioi-thieu.html">Giới thiệu</a>
+      <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
+      <a href="lien-he.html">Liên hệ</a>
+      <a href="don-hang-cua-toi.html">Đơn hàng của tôi</a>
+    </nav>
+    <div class="header-actions">
+      <div id="account-slot"></div>
+      <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge" style="display:none">0</span>
+      </a>
+      <button class="nav-toggle" aria-label="Mở menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="section-tight">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Trang chủ</a> / Đơn hàng của tôi</div>
+    <h2>Đơn hàng của tôi</h2>
+    <p class="muted" style="margin-top:-8px;margin-bottom:26px;">Mỗi lần mở lại trang này, trạng thái đơn sẽ luôn là mới nhất từ cửa hàng.</p>
+
+    <div id="orders-wrap" style="max-width:720px;"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>CỬA HÀNG MINH HIỀN</h4>
+        <p>Chuyên cung cấp ống thủy lực, rắc co và phụ kiện thủy lực chính hãng cho máy công trình, nhà xưởng và cơ khí chế tạo.</p>
+      </div>
+      <div>
+        <h4>Danh mục</h4>
+        <ul>
+          <li><a href="san-pham.html?cat=ong-thuy-luc">Ống thủy lực</a></li>
+          <li><a href="san-pham.html?cat=rac-co">Rắc co &amp; Đầu nối</a></li>
+          <li><a href="san-pham.html">Tất cả sản phẩm</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Về chúng tôi</h4>
+        <ul>
+          <li><a href="gioi-thieu.html">Giới thiệu</a></li>
+          <li><a href="trai-nghiem.html">Trải nghiệm khách hàng</a></li>
+          <li><a href="lien-he.html">Liên hệ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Liên hệ</h4>
+        <p>Hotline: 091 815 9870<br>Email: minhhien.bz@gmail.com<br><a href="https://maps.app.goo.gl/xZ1LxMxwxvJL9X4x6" target="_blank" rel="noopener">11 Thái Phiên, Phường Minh Phụng, TP.HCM</a></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © <span id="year"></span> Cửa Hàng Minh Hiền. Thông tin sản phẩm trên website mang tính minh họa, vui lòng liên hệ để được báo giá chính xác.
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+const wrap = document.getElementById("orders-wrap");
+
+function renderLoginGate(){
+  wrap.innerHTML = `
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;color:var(--text-muted)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <h3>Đăng nhập để xem đơn hàng của bạn</h3>
+      <p>Đăng nhập bằng Google để tra cứu lại các đơn đã đặt và trạng thái xử lý mới nhất.</p>
+      <button type="button" class="btn btn-primary btn-lg" id="gate-login-btn" style="margin-top:14px;">Đăng nhập Google</button>
+    </div>`;
+  const btn = document.getElementById("gate-login-btn");
+  if(!isFirebaseConfigured()){
+    btn.addEventListener("click", () => showToast("Đăng nhập chưa được cấu hình"));
+  }else{
+    btn.addEventListener("click", signInWithGoogle);
+  }
+}
+
+function renderLoading(){
+  wrap.innerHTML = `<p class="muted text-center" style="padding:40px 0;">Đang tải đơn hàng...</p>`;
+}
+
+function renderLoadError(){
+  wrap.innerHTML = `
+    <div class="empty-state">
+      <h3>Không tải được đơn hàng</h3>
+      <p>Vui lòng thử lại sau hoặc gọi hotline 091 815 9870 để được hỗ trợ.</p>
+      <button type="button" class="btn btn-outline" id="retry-btn" style="margin-top:10px;">Thử lại</button>
+    </div>`;
+  document.getElementById("retry-btn").addEventListener("click", loadOrders);
+}
+
+function statusInfo(status){
+  const map = {
+    "Chờ xác nhận thanh toán": { cls: "status-cho-xac-nhan", cancelable: true },
+    "Đã xác nhận — đang chuẩn bị hàng": { cls: "status-dang-chuan-bi", cancelable: true },
+    "Đang giao": { cls: "status-dang-giao", cancelable: false, showHelp: true },
+    "Hoàn tất": { cls: "status-hoan-tat", cancelable: false, showHelp: true },
+    "Đã huỷ": { cls: "status-da-huy", cancelable: false }
+  };
+  return map[status] || { cls: "status-cho-xac-nhan", cancelable: false };
+}
+
+function orderCardHTML(o){
+  const info = statusInfo(o.status);
+  const itemsHTML = (o.items || []).map(i => `<div><span>${i.name} x${i.qty}</span><span>${formatVND(i.lineTotal)}</span></div>`).join("");
+  const footRight = info.cancelable
+    ? `<button type="button" class="btn btn-outline btn-sm" data-cancel="${o.orderCode}">Huỷ đơn hàng này</button>`
+    : (info.showHelp ? `<span class="muted" style="font-size:.85rem;">Liên hệ hotline nếu cần hỗ trợ thêm</span>` : "");
+
+  return `
+    <div class="order-card">
+      <div class="order-card-head">
+        <div>
+          <div class="order-card-code">${o.orderCode}</div>
+          <div class="order-card-date">${o.date || ""}</div>
+        </div>
+        <span class="status-badge ${info.cls}">${o.status}</span>
+      </div>
+      <div class="order-card-items">${itemsHTML}</div>
+      <div class="order-card-foot">
+        <div class="order-card-total">${formatVND(o.total)}</div>
+        ${footRight}
+      </div>
+    </div>`;
+}
+
+function renderOrders(orders){
+  if(!orders.length){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <h3>Chưa có đơn hàng nào</h3>
+        <p>Đơn hàng bạn đặt khi đã đăng nhập sẽ hiện ở đây.</p>
+        <a href="san-pham.html" class="btn btn-primary" style="margin-top:10px;">Xem sản phẩm</a>
+      </div>`;
+    return;
+  }
+  wrap.innerHTML = orders.map(orderCardHTML).join("");
+  wrap.querySelectorAll("[data-cancel]").forEach(btn => {
+    btn.addEventListener("click", () => handleCancel(btn.dataset.cancel, btn));
+  });
+}
+
+async function loadOrders(){
+  renderLoading();
+  const idToken = await getCurrentIdToken();
+  const res = await postToAppsScriptJSON({ type: "my_orders", idToken });
+  if(!res || !res.success){
+    renderLoadError();
+    return;
+  }
+  renderOrders(res.orders || []);
+}
+
+async function handleCancel(orderCode, btn){
+  if(!confirm(`Huỷ đơn hàng ${orderCode}? Thao tác này không thể hoàn tác.`)) return;
+  btn.disabled = true;
+  btn.textContent = "Đang huỷ...";
+  const idToken = await getCurrentIdToken();
+  const res = await postToAppsScriptJSON({ type: "cancel_order", orderCode, idToken });
+  if(res && res.success){
+    showToast("Đã huỷ đơn hàng");
+    loadOrders();
+  }else{
+    showToast((res && res.error) || "Không huỷ được đơn, vui lòng thử lại");
+    btn.disabled = false;
+    btn.textContent = "Huỷ đơn hàng này";
+  }
+}
+
+onAuthChange(user => {
+  if(user) loadOrders();
+  else renderLoginGate();
+});
+</script>
+</body>
+</html>

@@ -311,6 +311,19 @@ let PRODUCTS = [
   }
 ];
 
+/* Tồn kho mẫu — sản phẩm thật sẽ lấy số tồn kho từ cột "Tồn kho" trong Sheet
+   (xem refreshProductsFromSheet). Gán tạm ở đây để demo cảnh báo sắp hết/hết hàng. */
+const SAMPLE_STOCK_ = {
+  "ong-1sn-12": 50, "ong-2sn-34": 40, "ong-4sp-1": 25, "ong-4sh-114": 15,
+  "ong-spiral-2": 8, "ong-chiu-nhiet": 20, "ong-r3-38": 0,
+  "racco-bsp-12": 100, "racco-npt-34": 60, "racco-jic-916": 3, "racco-orfs-34": 30,
+  "racco-flange-1": 12, "racco-quick-12": 18, "racco-tee-12": 45, "racco-elbow-34": 50,
+  "racco-union-1": 22, "racco-cap-12": 200
+};
+PRODUCTS.forEach(p => {
+  if(p.stock === undefined) p.stock = SAMPLE_STOCK_[p.id] !== undefined ? SAMPLE_STOCK_[p.id] : 999;
+});
+
 function findProduct(id){
   return PRODUCTS.find(p => p.id === id);
 }
@@ -332,7 +345,10 @@ function refreshProductsFromSheet(){
     .then(data => {
       if(data && data.success && Array.isArray(data.products) && data.products.length){
         PRODUCTS.length = 0;
-        data.products.forEach(p => PRODUCTS.push(p));
+        data.products.forEach(p => {
+          if(p.stock === undefined || p.stock === null || isNaN(p.stock)) p.stock = 999;
+          PRODUCTS.push(p);
+        });
         window.dispatchEvent(new Event("products-updated"));
       }
     })

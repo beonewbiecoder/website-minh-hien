@@ -290,6 +290,12 @@ document.addEventListener("DOMContentLoaded", renderAIChatWidget);
 
 /* ---------- Card sản phẩm dùng chung ---------- */
 function productCardHTML(p){
+  const stock = getProductStock(p);
+  const outOfStock = stock <= 0;
+  const lowStock = !outOfStock && stock <= 5;
+  const addBtn = outOfStock
+    ? `<span class="stock-out-badge">Tạm hết hàng</span>`
+    : `<button class="btn btn-primary btn-add" data-id="${p.id}">Thêm vào giỏ</button>`;
   return `
     <div class="product-card" data-id="${p.id}" data-cat="${p.category}" data-name="${p.name.toLowerCase()}">
       <a href="san-pham-chi-tiet.html?id=${p.id}" class="product-thumb" style="color:var(--navy)">
@@ -301,8 +307,9 @@ function productCardHTML(p){
         <a href="san-pham-chi-tiet.html?id=${p.id}"><h3 class="product-title">${p.name}</h3></a>
         <p class="product-desc">${p.desc}</p>
         <div class="product-price">${formatVND(p.price)} <small>/ ${p.unit}</small></div>
+        ${lowStock ? `<div class="stock-low">Chỉ còn ${stock} sản phẩm</div>` : ""}
         <div class="product-actions">
-          <button class="btn btn-primary btn-add" data-id="${p.id}">Thêm vào giỏ</button>
+          ${addBtn}
           <a href="san-pham-chi-tiet.html?id=${p.id}" class="btn btn-outline">Chi tiết</a>
         </div>
       </div>
@@ -312,8 +319,14 @@ function productCardHTML(p){
 function bindAddToCartButtons(root){
   (root || document).querySelectorAll(".btn-add").forEach(btn => {
     btn.addEventListener("click", () => {
-      addToCart(btn.dataset.id, 1);
-      showToast("Đã thêm vào giỏ hàng ✓");
+      const result = addToCart(btn.dataset.id, 1);
+      if(!result.added){
+        showToast(`Sản phẩm đã hết hàng`);
+      }else if(result.capped){
+        showToast(`Chỉ còn ${result.stock} sản phẩm — đã thêm tối đa vào giỏ`);
+      }else{
+        showToast("Đã thêm vào giỏ hàng ✓");
+      }
     });
   });
 }

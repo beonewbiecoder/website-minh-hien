@@ -33,8 +33,10 @@
       <a href="gioi-thieu.html">Giới thiệu</a>
       <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
       <a href="lien-he.html">Liên hệ</a>
+      <a href="don-hang-cua-toi.html">Đơn hàng của tôi</a>
     </nav>
     <div class="header-actions">
+      <div id="account-slot"></div>
       <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span class="cart-badge" style="display:none">0</span>
@@ -87,9 +89,12 @@
   </div>
 </footer>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="js/config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/cart.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/main.js"></script>
 <script>
 const SHOP_PHONE = typeof CONTACT_PHONE !== "undefined" ? CONTACT_PHONE : "0918159870";
@@ -112,7 +117,10 @@ function renderCheckout(){
   }
 
   const orderCode = generateOrderCode();
-  const total = cartTotal();
+  const productsTotal = cartTotal();
+  const defaultZoneName = SHIPPING_ZONES[0] ? SHIPPING_ZONES[0].name : "";
+  const initialShippingFee = getShippingFee(defaultZoneName);
+  const initialGrandTotal = productsTotal + initialShippingFee;
 
   wrap.innerHTML = `
     <form id="order-form" novalidate>
@@ -145,6 +153,13 @@ function renderCheckout(){
               <label>Địa chỉ nhận hàng *</label>
               <input type="text" id="f-address" required placeholder="Số nhà, đường, phường/xã, tỉnh/thành">
             </div>
+            <div class="form-group" id="zone-group">
+              <label>Tỉnh/Thành phố nhận hàng *</label>
+              <select id="f-zone" required>
+                ${SHIPPING_ZONES.map(z => `<option value="${z.name}">${z.name}</option>`).join("")}
+              </select>
+              <p class="hint" id="zone-fee-hint" style="margin-top:6px;"></p>
+            </div>
             <div class="form-group" style="margin-bottom:0;">
               <label>Ghi chú thêm <span class="hint">(không bắt buộc)</span></label>
               <textarea id="f-note" rows="2" placeholder="Ví dụ: cắt sẵn theo chiều dài, giao giờ hành chính..."></textarea>
@@ -170,7 +185,7 @@ function renderCheckout(){
                 <div><span>Ngân hàng</span><b>${VIETQR_BANK_CODE}</b></div>
                 <div><span>Số tài khoản</span><b>${VIETQR_ACCOUNT_NO}</b></div>
                 <div><span>Chủ tài khoản</span><b>${VIETQR_ACCOUNT_NAME}</b></div>
-                <div><span>Số tiền</span><b>${formatVND(total)}</b></div>
+                <div><span>Số tiền</span><b id="qr-amount">${formatVND(initialGrandTotal)}</b></div>
                 <div><span>Nội dung CK</span><b>${orderCode}</b></div>
               </div>
             </div>
@@ -183,7 +198,8 @@ function renderCheckout(){
               <summary>Tóm tắt đơn hàng (${cartCount()} sản phẩm)</summary>
               ${items.map(i => `<div class="order-summary-line"><span>${i.product.name} x${i.qty}</span><span>${formatVND(i.lineTotal)}</span></div>`).join("")}
             </details>
-            <div class="summary-row total" style="margin-top:14px;"><span>Tổng cộng</span><span>${formatVND(total)}</span></div>
+            <div class="summary-row" id="summary-shipping-row"><span>Phí vận chuyển</span><span id="summary-shipping-amount">${formatVND(initialShippingFee)}</span></div>
+            <div class="summary-row total" style="margin-top:14px;"><span>Tổng cộng</span><span id="summary-total-amount">${formatVND(initialGrandTotal)}</span></div>
           </div>
         </div>
       </div>
@@ -191,38 +207,85 @@ function renderCheckout(){
       <div class="checkout-sticky-bar">
         <div class="csb-total">
           <span>Tổng cộng</span>
-          <b>${formatVND(total)}</b>
+          <b id="csb-total-amount">${formatVND(initialGrandTotal)}</b>
         </div>
-        <button type="submit" class="btn btn-primary">Xác nhận đặt hàng</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">Xác nhận đặt hàng</button>
       </div>
     </form>
   `;
 
+  // Đăng nhập rồi thì tự điền sẵn tên (Google không cho số điện thoại) — giảm ô cần gõ tay
+  onAuthChange(user => {
+    const nameInput = document.getElementById("f-name");
+    if(user && nameInput && !nameInput.value) nameInput.value = user.displayName || "";
+  });
+
+  function currentShippingFee(){
+    const isPickup = document.querySelector('input[name="fulfillment"]:checked').value === "pickup";
+    if(isPickup) return 0;
+    const zoneName = document.getElementById("f-zone").value;
+    return getShippingFee(zoneName);
+  }
+
+  function updateTotals(){
+    const shippingFee = currentShippingFee();
+    const grandTotal = productsTotal + shippingFee;
+    const isShip = document.querySelector('input[name="fulfillment"]:checked').value === "ship";
+    document.getElementById("summary-shipping-row").style.display = isShip ? "flex" : "none";
+    document.getElementById("summary-shipping-amount").textContent = formatVND(shippingFee);
+    document.getElementById("summary-total-amount").textContent = formatVND(grandTotal);
+    document.getElementById("csb-total-amount").textContent = formatVND(grandTotal);
+    if(document.querySelector('input[name="payment"]:checked').value === "bank"){
+      document.getElementById("qr-img").src = buildVietQrUrl(grandTotal, orderCode);
+      document.getElementById("qr-amount").textContent = formatVND(grandTotal);
+    }
+    return { shippingFee, grandTotal };
+  }
+
+  function updateZoneHint(){
+    const zoneName = document.getElementById("f-zone").value;
+    const zone = SHIPPING_ZONES.find(z => z.name === zoneName);
+    const fee = zone ? (SHIPPING_FEES[zone.tier] || 0) : 0;
+    let text = `Phí vận chuyển: ${formatVND(fee)}`;
+    if(zone && zone.tier === "far") text += " — Đơn giao tỉnh xa qua đối tác vận chuyển, thời gian giao 3-5 ngày.";
+    document.getElementById("zone-fee-hint").textContent = text;
+  }
+  updateZoneHint();
+
   const addressGroup = document.getElementById("address-group");
   const addressInput = document.getElementById("f-address");
+  const zoneGroup = document.getElementById("zone-group");
+  const zoneSelect = document.getElementById("f-zone");
   document.querySelectorAll('input[name="fulfillment"]').forEach(r => {
     r.addEventListener("change", () => {
       const isPickup = document.querySelector('input[name="fulfillment"]:checked').value === "pickup";
       addressGroup.style.display = isPickup ? "none" : "block";
+      zoneGroup.style.display = isPickup ? "none" : "block";
       addressInput.required = !isPickup;
+      zoneSelect.required = !isPickup;
       if(isPickup) addressInput.value = "";
+      updateTotals();
     });
   });
+  zoneSelect.addEventListener("change", () => { updateZoneHint(); updateTotals(); });
 
   const qrBlock = document.getElementById("qr-block");
-  const qrImg = document.getElementById("qr-img");
   document.querySelectorAll('input[name="payment"]').forEach(r => {
     r.addEventListener("change", () => {
       const isBank = document.querySelector('input[name="payment"]:checked').value === "bank";
       qrBlock.style.display = isBank ? "block" : "none";
-      if(isBank && !qrImg.src) qrImg.src = buildVietQrUrl(total, orderCode);
+      if(isBank) updateTotals();
     });
   });
 
   document.getElementById("order-form").addEventListener("submit", function(e){
     e.preventDefault();
+    const submitBtn = document.getElementById("submit-btn");
+    if(submitBtn.disabled) return; // chặn bấm trùng khi đang gửi
+
     const fulfillment = document.querySelector('input[name="fulfillment"]:checked').value;
     const payment = document.querySelector('input[name="payment"]:checked').value;
+    const zoneName = fulfillment === "ship" ? document.getElementById("f-zone").value : "";
     const customer = {
       name: document.getElementById("f-name").value.trim(),
       phone: document.getElementById("f-phone").value.trim(),
@@ -238,22 +301,38 @@ function renderCheckout(){
       return;
     }
 
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="btn-spinner"></span> Đang xử lý...`;
+
+    const { shippingFee, grandTotal } = updateTotals();
     const orderItems = cartDetailed();
+    const user = getCurrentUser();
+
     postToAppsScript({
       type: "order",
       orderCode: orderCode,
       name: customer.name,
       phone: customer.phone,
+      email: user ? (user.email || "") : "",
       fulfillment: fulfillment,
       address: customer.address,
+      zone: zoneName,
       payment: payment,
       note: customer.note,
-      items: orderItems.map(i => ({ name: i.product.name, size: i.product.size, qty: i.qty, unit: i.product.unit, lineTotal: i.lineTotal })),
-      total: total
+      items: orderItems.map(i => ({ id: i.product.id, name: i.product.name, size: i.product.size, qty: i.qty, unit: i.product.unit, lineTotal: i.lineTotal })),
+      productsTotal: productsTotal,
+      shippingFee: shippingFee,
+      total: grandTotal
+    }).then(ok => {
+      if(ok){
+        showConfirmation({ customer, fulfillment, payment, orderCode, items: orderItems, productsTotal, shippingFee, total: grandTotal });
+        clearCart();
+      }else{
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Xác nhận đặt hàng";
+        showToast("Gửi đơn thất bại — kiểm tra mạng và thử lại");
+      }
     });
-
-    showConfirmation({ customer, fulfillment, payment, orderCode, items: orderItems, total });
-    clearCart();
   });
 }
 
@@ -261,18 +340,42 @@ function showConfirmation(order){
   document.body.classList.remove("checkout-page");
   const wrap = document.getElementById("checkout-wrap");
   const itemLines = order.items.map(i => `<div class="order-summary-line"><span>${i.product.name} x${i.qty}</span><span>${formatVND(i.lineTotal)}</span></div>`).join("");
+  const isBank = order.payment === "bank";
+
+  const statusMsg = isBank
+    ? "Đơn hàng đã được ghi nhận, đang chờ xác nhận thanh toán. Vui lòng hoàn tất chuyển khoản theo mã QR bên dưới, cửa hàng sẽ xác nhận và gọi điện trong thời gian sớm nhất."
+    : "Đặt hàng thành công, cửa hàng sẽ gọi điện xác nhận trước khi giao.";
+  const heading = isBank ? "Đơn hàng đã được ghi nhận" : "Cảm ơn bạn đã đặt hàng!";
+
+  const qrSection = isBank ? `
+    <div class="qr-block" style="max-width:560px;margin:20px auto 0;">
+      <img src="${buildVietQrUrl(order.total, order.orderCode)}" alt="Mã QR chuyển khoản">
+      <p class="qr-hint">Quét mã bằng app ngân hàng bất kỳ — số tiền và nội dung đã tự điền sẵn, bạn chỉ cần xác nhận chuyển khoản.</p>
+      <div class="qr-info">
+        <div><span>Ngân hàng</span><b>${VIETQR_BANK_CODE}</b></div>
+        <div><span>Số tài khoản</span><b>${VIETQR_ACCOUNT_NO}</b></div>
+        <div><span>Chủ tài khoản</span><b>${VIETQR_ACCOUNT_NAME}</b></div>
+        <div><span>Số tiền</span><b>${formatVND(order.total)}</b></div>
+        <div><span>Nội dung CK</span><b>${order.orderCode}</b></div>
+      </div>
+    </div>` : "";
 
   wrap.innerHTML = `
-    <div class="success-box">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 10px;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-      <h2 style="color:inherit;">Cảm ơn bạn đã đặt hàng!</h2>
+    <div class="${isBank ? "pending-box" : "success-box"}">
+      ${isBank
+        ? `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 10px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`
+        : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 10px;"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`}
+      <h2 style="color:inherit;">${heading}</h2>
       <p>Mã đơn hàng: <strong>${order.orderCode}</strong></p>
-      <p>Nhân viên sẽ gọi điện xác nhận đơn hàng trong thời gian sớm nhất.</p>
+      <p>${statusMsg}</p>
     </div>
+
+    ${qrSection}
 
     <div class="form-card" style="max-width:560px;margin:24px auto 0;">
       <h3 class="mt-0">Tóm tắt đơn hàng</h3>
       ${itemLines}
+      ${order.shippingFee > 0 ? `<div class="summary-row"><span>Phí vận chuyển</span><span>${formatVND(order.shippingFee)}</span></div>` : ""}
       <div class="summary-row total" style="margin-top:8px;"><span>Tổng cộng</span><span>${formatVND(order.total)}</span></div>
       <div class="summary-row"><span>Hình thức nhận hàng</span><span>${fulfillmentLabel(order.fulfillment)}</span></div>
       ${order.fulfillment === "ship" ? `<div class="summary-row"><span>Địa chỉ</span><span>${order.customer.address}</span></div>` : ""}

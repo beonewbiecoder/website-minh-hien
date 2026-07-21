@@ -2,7 +2,8 @@
  * MINH HIỀN HYDRAULICS — Apps Script backend
  *
  * Nối website với Google Sheet:
- * - Lưu đơn hàng (tab "Orders") + gửi email báo
+ * - Lưu đơn hàng (tab "Orders") + gửi email báo, trừ/hoàn tồn kho (tab "Products")
+ * - Tra cứu đơn theo tài khoản Google đã đăng nhập + cho khách tự huỷ đơn
  * - Lưu yêu cầu tư vấn (tab "Contacts") + gửi email báo
  * - Trả về danh sách sản phẩm (tab "Products") dạng JSON cho website hiển thị
  * - Trợ lý chat AI (Gemini): trả lời dựa trên dữ liệu Sheet (Products/TuDien/FAQ),
@@ -10,9 +11,10 @@
  *
  * CÁCH DÙNG — xem hướng dẫn đầy đủ trong tin nhắn Claude đã gửi.
  * Tóm tắt: dán file này vào Extensions > Apps Script của Google Sheet,
- * sửa NOTIFY_EMAIL/EMAIL_CHU_SHOP nếu cần, vào Project Settings > Script
- * Properties thêm GEMINI_API_KEY, rồi Deploy > Manage deployments > sửa
- * deployment cũ > Version: New version > Deploy (giữ nguyên URL cũ).
+ * sửa NOTIFY_EMAIL/EMAIL_CHU_SHOP/FIREBASE_API_KEY nếu cần, vào Project
+ * Settings > Script Properties thêm GEMINI_API_KEY, rồi Deploy > Manage
+ * deployments > sửa deployment cũ > Version: New version > Deploy (giữ
+ * nguyên URL cũ).
  */
 
 const NOTIFY_EMAIL = "minhhien.bz@gmail.com";
@@ -20,12 +22,27 @@ const NOTIFY_EMAIL = "minhhien.bz@gmail.com";
 // Để trống thì dùng chung NOTIFY_EMAIL ở trên.
 const EMAIL_CHU_SHOP = "";
 
+// PHẢI khớp với FIREBASE_CONFIG.apiKey trong js/config.js — dùng để xác thực
+// lại token đăng nhập Google trước khi trả/huỷ đơn hàng của khách (tránh một
+// khách xem/huỷ được đơn của người khác chỉ bằng cách sửa email trong request).
+const FIREBASE_API_KEY = "";
+
 const SHEET_ORDERS = "Orders";
 const SHEET_CONTACTS = "Contacts";
 const SHEET_PRODUCTS = "Products";
 const SHEET_TUDIEN = "TuDien";
 const SHEET_FAQ = "FAQ";
 const SHEET_CHATLOG = "ChatLog";
+
+// Các trạng thái đơn hàng chuẩn hoá — dùng đúng các chuỗi này ở mọi nơi
+// (Sheet, email, trang "Đơn hàng của tôi") để so khớp chính xác.
+const STATUS_CHO_XAC_NHAN = "Chờ xác nhận thanh toán";
+const STATUS_DANG_CHUAN_BI = "Đã xác nhận — đang chuẩn bị hàng";
+const STATUS_DANG_GIAO = "Đang giao";
+const STATUS_HOAN_TAT = "Hoàn tất";
+const STATUS_DA_HUY = "Đã huỷ";
+// Chỉ 2 trạng thái đầu (chưa giao) mới cho khách tự huỷ ở trang "Đơn hàng của tôi"
+const CANCELABLE_STATUSES = [STATUS_CHO_XAC_NHAN, STATUS_DANG_CHUAN_BI];
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const SYSTEM_PROMPT = "Bạn là trợ lý tư vấn của cửa hàng Minh Hiền Hydraulics, chuyên ống thủy lực và rắc co. " +
@@ -45,23 +62,23 @@ function doPost(e) {
       return handleChat_(data);
     } else if (data.type === "chat_escalate") {
       return handleChatEscalate_(data);
+    } else if (data.type === "my_orders") {
+      return handleMyOrders_(data);
+    } else if (data.type === "cancel_order") {
+      return handleCancelOrder_(data);
     }
-    return ContentService.createTextOutput(JSON.stringify({ success: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput_({ success: true });
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput_({ success: false, error: String(err) });
   }
 }
 
 function doGet(e) {
   const action = e.parameter.action;
   if (action === "products") {
-    return ContentService.createTextOutput(JSON.stringify({ success: true, products: getProducts() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonOutput_({ success: true, products: getProducts() });
   }
-  return ContentService.createTextOutput(JSON.stringify({ success: false, error: "unknown action" }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return jsonOutput_({ success: false, error: "unknown action" });
 }
 
 function getSheet_(name) {
@@ -71,36 +88,56 @@ function getSheet_(name) {
   return sheet;
 }
 
+/* =========================================================
+   ĐƠN HÀNG — lưu, trừ tồn kho, xác thực + tra cứu theo tài khoản
+   ========================================================= */
+
+const ORDERS_HEADERS_ = [
+  "Thời gian", "Mã đơn hàng", "Trạng thái", "Email", "Họ tên", "Điện thoại",
+  "Hình thức nhận hàng", "Địa chỉ", "Tỉnh/Thành", "Phương thức thanh toán",
+  "Ghi chú", "Sản phẩm", "Phí vận chuyển", "Tổng tiền", "Chi tiết SP (JSON)"
+];
+
 function saveOrder(data) {
   const sheet = getSheet_(SHEET_ORDERS);
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "Thời gian", "Mã đơn hàng", "Họ tên", "Điện thoại", "Hình thức nhận hàng",
-      "Địa chỉ", "Phương thức thanh toán", "Ghi chú", "Sản phẩm", "Tổng tiền"
-    ]);
+    sheet.appendRow(ORDERS_HEADERS_);
   }
+
   const itemsText = (data.items || [])
     .map(function (i) { return i.name + " (" + i.size + ") x" + i.qty + " " + i.unit + " = " + i.lineTotal + "đ"; })
     .join("\n");
   const fulfillmentLabel = data.fulfillment === "pickup" ? "Tới lấy tại cửa hàng" : "Giao hàng tận nơi";
   const paymentLabel = data.payment === "bank" ? "Chuyển khoản ngân hàng" : "Thanh toán khi nhận hàng (COD)";
+  // COD xác nhận ngay vì không cần chờ tiền về. Chuyển khoản phải chờ chủ shop
+  // tự kiểm tra sao kê rồi mới đổi trạng thái thủ công trong Sheet.
+  const status = data.payment === "bank" ? STATUS_CHO_XAC_NHAN : STATUS_DANG_CHUAN_BI;
+  const itemsJson = JSON.stringify(data.items || []);
 
   sheet.appendRow([
-    new Date(), data.orderCode || "", data.name || "", data.phone || "",
-    fulfillmentLabel, data.address || "", paymentLabel, data.note || "",
-    itemsText, data.total || 0
+    new Date(), data.orderCode || "", status, data.email || "", data.name || "", data.phone || "",
+    fulfillmentLabel, data.address || "", data.zone || "", paymentLabel,
+    data.note || "", itemsText, data.shippingFee || 0, data.total || 0, itemsJson
   ]);
+
+  // Trừ tồn kho ngay khi tạo đơn (kể cả COD lẫn chuyển khoản) — tránh 2 khách
+  // cùng đặt trúng sản phẩm cuối cùng trong lúc chờ xác nhận thanh toán.
+  adjustStockForItems_(data.items || [], -1);
 
   const body = [
     "Có đơn hàng mới từ website!", "",
     "Mã đơn hàng: " + (data.orderCode || "(không có)"),
+    "Trạng thái: " + status,
     "Khách hàng: " + data.name,
     "Điện thoại: " + data.phone,
+    "Email tài khoản: " + (data.email || "(khách chưa đăng nhập)"),
     "Hình thức nhận hàng: " + fulfillmentLabel,
     "Địa chỉ: " + (data.address || "(tới lấy tại cửa hàng)"),
+    "Tỉnh/Thành: " + (data.zone || "-"),
     "Thanh toán: " + paymentLabel,
     "Ghi chú: " + (data.note || "(không có)"), "",
     "Sản phẩm:", itemsText, "",
+    "Phí vận chuyển: " + (data.shippingFee || 0) + "đ",
     "Tổng tiền: " + (data.total || 0) + "đ"
   ].join("\n");
   MailApp.sendEmail(
@@ -108,6 +145,161 @@ function saveOrder(data) {
     "[Đơn hàng mới] " + (data.orderCode ? data.orderCode + " - " : "") + data.name + " - " + (data.total || 0) + "đ",
     body
   );
+}
+
+// Xác thực lại idToken Firebase với chính máy chủ Google (Identity Toolkit) —
+// KHÔNG tin trực tiếp email do trình duyệt gửi lên, tránh khách giả email
+// người khác để xem/huỷ đơn của họ. Trả về email đã xác minh, hoặc null.
+function verifyFirebaseIdToken_(idToken) {
+  if (!idToken || !FIREBASE_API_KEY) return null;
+  try {
+    const res = UrlFetchApp.fetch(
+      "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=" + FIREBASE_API_KEY,
+      {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({ idToken: idToken }),
+        muteHttpExceptions: true
+      }
+    );
+    if (res.getResponseCode() !== 200) return null;
+    const data = JSON.parse(res.getContentText());
+    const user = data.users && data.users[0];
+    return (user && user.email) ? user.email : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function handleMyOrders_(data) {
+  const email = verifyFirebaseIdToken_(data.idToken);
+  if (!email) {
+    return jsonOutput_({ success: false, error: "Không xác thực được tài khoản, vui lòng đăng nhập lại." });
+  }
+  const sheet = getSheet_(SHEET_ORDERS);
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return jsonOutput_({ success: true, orders: [] });
+  const headers = rows[0];
+  const idx = function (name) { return headers.indexOf(name); };
+  const emailLower = email.trim().toLowerCase();
+
+  const orders = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const rowEmail = String(row[idx("Email")] || "").trim().toLowerCase();
+    if (!rowEmail || rowEmail !== emailLower) continue;
+
+    let items = [];
+    try { items = JSON.parse(row[idx("Chi tiết SP (JSON)")] || "[]"); } catch (e) { items = []; }
+
+    orders.push({
+      orderCode: row[idx("Mã đơn hàng")],
+      date: formatDateVN_(row[idx("Thời gian")]),
+      status: row[idx("Trạng thái")],
+      total: Number(row[idx("Tổng tiền")]) || 0,
+      items: items
+    });
+  }
+  orders.reverse(); // mới nhất trước
+  return jsonOutput_({ success: true, orders: orders });
+}
+
+function handleCancelOrder_(data) {
+  const email = verifyFirebaseIdToken_(data.idToken);
+  if (!email) {
+    return jsonOutput_({ success: false, error: "Không xác thực được tài khoản, vui lòng đăng nhập lại." });
+  }
+  const orderCode = data.orderCode;
+  if (!orderCode) return jsonOutput_({ success: false, error: "Thiếu mã đơn hàng." });
+
+  const sheet = getSheet_(SHEET_ORDERS);
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return jsonOutput_({ success: false, error: "Không tìm thấy đơn hàng." });
+  const headers = rows[0];
+  const idx = function (name) { return headers.indexOf(name); };
+  const emailLower = email.trim().toLowerCase();
+
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (String(row[idx("Mã đơn hàng")]) !== String(orderCode)) continue;
+
+    const rowEmail = String(row[idx("Email")] || "").trim().toLowerCase();
+    if (!rowEmail || rowEmail !== emailLower) {
+      return jsonOutput_({ success: false, error: "Bạn không có quyền huỷ đơn này." });
+    }
+    const currentStatus = row[idx("Trạng thái")];
+    if (CANCELABLE_STATUSES.indexOf(currentStatus) === -1) {
+      return jsonOutput_({ success: false, error: "Đơn hàng này không còn huỷ được." });
+    }
+
+    sheet.getRange(r + 1, idx("Trạng thái") + 1).setValue(STATUS_DA_HUY);
+
+    let items = [];
+    try { items = JSON.parse(row[idx("Chi tiết SP (JSON)")] || "[]"); } catch (e) { items = []; }
+    adjustStockForItems_(items, 1);
+
+    return jsonOutput_({ success: true });
+  }
+  return jsonOutput_({ success: false, error: "Không tìm thấy đơn hàng." });
+}
+
+// Trigger đơn giản (tự chạy, KHÔNG cần bật gì thêm trong Apps Script) — khi
+// chủ shop tự tay sửa cột "Trạng thái" trong Sheet thành "Đã huỷ", tự động
+// hoàn tồn kho giống hệt như khi khách tự huỷ ở trang "Đơn hàng của tôi".
+function onEdit(e) {
+  try {
+    const sheet = e.range.getSheet();
+    if (sheet.getName() !== SHEET_ORDERS) return;
+    if (e.range.getRow() === 1) return;
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const statusCol = headers.indexOf("Trạng thái") + 1;
+    if (statusCol === 0 || e.range.getColumn() !== statusCol) return;
+
+    const newStatus = e.value;
+    const oldStatus = e.oldValue;
+    if (newStatus !== STATUS_DA_HUY || oldStatus === STATUS_DA_HUY) return;
+
+    const rowValues = sheet.getRange(e.range.getRow(), 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idx = function (name) { return headers.indexOf(name); };
+    let items = [];
+    try { items = JSON.parse(rowValues[idx("Chi tiết SP (JSON)")] || "[]"); } catch (err) { items = []; }
+    adjustStockForItems_(items, 1);
+  } catch (err) {
+    // Im lặng bỏ qua lỗi trong trigger — không được làm hỏng thao tác sửa Sheet của chủ shop
+  }
+}
+
+// sign = -1 để trừ (lúc tạo đơn), +1 để hoàn (lúc huỷ đơn)
+function adjustStockForItems_(items, sign) {
+  if (!items || !items.length) return;
+  const sheet = getSheet_(SHEET_PRODUCTS);
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return;
+  const headers = rows[0];
+  const idCol = headers.indexOf("ID");
+  const stockCol = headers.indexOf("Tồn kho");
+  if (idCol === -1 || stockCol === -1) return; // Sheet chưa có cột tồn kho — bỏ qua, không lỗi
+
+  items.forEach(function (item) {
+    if (!item.id) return;
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][idCol]) === String(item.id)) {
+        const current = Number(rows[r][stockCol]) || 0;
+        const next = Math.max(0, current + sign * (Number(item.qty) || 0));
+        sheet.getRange(r + 1, stockCol + 1).setValue(next);
+        break;
+      }
+    }
+  });
+}
+
+function formatDateVN_(value) {
+  try {
+    return Utilities.formatDate(new Date(value), "GMT+7", "dd/MM/yyyy HH:mm");
+  } catch (e) {
+    return String(value || "");
+  }
 }
 
 function saveContact(data) {
@@ -141,6 +333,8 @@ function getProducts() {
     "rac-co": "rac-co"
   };
 
+  const stockIdx = idx("Tồn kho");
+
   const products = [];
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
@@ -160,6 +354,13 @@ function getProducts() {
     let icon = String(row[idx("Icon")] || "").trim();
     if (!icon) icon = category === "ong-thuy-luc" ? "hose" : "hex";
 
+    // Cột "Tồn kho" là tuỳ chọn — nếu Sheet chưa có cột này thì coi như không giới hạn (999)
+    let stock = 999;
+    if (stockIdx !== -1) {
+      const v = Number(row[stockIdx]);
+      stock = isNaN(v) ? 999 : v;
+    }
+
     const idCell = row[idx("ID")];
     products.push({
       id: idCell ? String(idCell) : slugify_(name),
@@ -172,6 +373,7 @@ function getProducts() {
       badge: row[idx("Nhãn nổi bật")] || "",
       icon: icon,
       specs: specs,
+      stock: stock,
       // Cột "Tình trạng" là tuỳ chọn — nếu Sheet chưa có cột này thì mặc định Còn hàng
       status: String(row[idx("Tình trạng")] || "Còn hàng").trim()
     });
@@ -206,11 +408,13 @@ function getSheetRows_(name, headerRow) {
   return rows.slice(1).filter(function (r) { return r[0]; });
 }
 
-// Chỉ đưa sản phẩm CÒN HÀNG vào ngữ cảnh cho AI, tránh tư vấn nhầm hàng đã hết
+// Chỉ đưa sản phẩm CÒN HÀNG (còn tồn kho, không bị đánh dấu hết) vào ngữ
+// cảnh cho AI, tránh tư vấn nhầm hàng đã hết.
 function getAvailableProductsContext_() {
   const products = getProducts();
   const available = products.filter(function (p) {
-    return String(p.status || "").toLowerCase().indexOf("hết") === -1;
+    const statusHetHang = String(p.status || "").toLowerCase().indexOf("hết") !== -1;
+    return p.stock > 0 && !statusHetHang;
   });
   if (!available.length) return "(chưa có dữ liệu sản phẩm)";
   const catName = function (c) { return c === "ong-thuy-luc" ? "Ống thủy lực" : "Rắc co & Đầu nối"; };
