@@ -98,11 +98,24 @@ const ORDERS_HEADERS_ = [
   "Ghi chú", "Sản phẩm", "Phí vận chuyển", "Tổng tiền", "Chi tiết SP (JSON)"
 ];
 
+// Sheet Orders có thể đang mang header CŨ (từ trước khi có tính năng đăng
+// nhập/tồn kho/phí ship) — nếu chỉ appendRow header lúc sheet trống thì sheet
+// đã có dữ liệu từ trước sẽ giữ nguyên header cũ mãi mãi, làm dữ liệu mới ghi
+// vào bị lệch cột. Hàm này so sánh header hiện tại với ORDERS_HEADERS_ chuẩn,
+// tự sửa lại nếu khác — chạy an toàn dù sheet trống, có header cũ, hay đã đúng.
+function ensureOrdersHeader_(sheet) {
+  const lastCol = sheet.getLastColumn();
+  const currentHeader = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  const matches = currentHeader.length === ORDERS_HEADERS_.length &&
+    ORDERS_HEADERS_.every(function (h, i) { return h === currentHeader[i]; });
+  if (!matches) {
+    sheet.getRange(1, 1, 1, ORDERS_HEADERS_.length).setValues([ORDERS_HEADERS_]);
+  }
+}
+
 function saveOrder(data) {
   const sheet = getSheet_(SHEET_ORDERS);
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(ORDERS_HEADERS_);
-  }
+  ensureOrdersHeader_(sheet);
 
   const itemsText = (data.items || [])
     .map(function (i) { return i.name + " (" + i.size + ") x" + i.qty + " " + i.unit + " = " + i.lineTotal + "đ"; })
@@ -189,6 +202,7 @@ function handleMyOrders_(data) {
   }
   const email = auth.email;
   const sheet = getSheet_(SHEET_ORDERS);
+  ensureOrdersHeader_(sheet);
   const rows = sheet.getDataRange().getValues();
   if (rows.length < 2) return jsonOutput_({ success: true, orders: [] });
   const headers = rows[0];
@@ -226,6 +240,7 @@ function handleCancelOrder_(data) {
   if (!orderCode) return jsonOutput_({ success: false, error: "Thiếu mã đơn hàng." });
 
   const sheet = getSheet_(SHEET_ORDERS);
+  ensureOrdersHeader_(sheet);
   const rows = sheet.getDataRange().getValues();
   if (rows.length < 2) return jsonOutput_({ success: false, error: "Không tìm thấy đơn hàng." });
   const headers = rows[0];
