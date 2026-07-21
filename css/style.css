@@ -1050,6 +1050,8 @@ body.checkout-page .ai-chat-bubble{ display: none !important; }
 .checkout-login-prompt-active .checkout-login-prompt-text strong{ color: var(--success); }
 .checkout-login-prompt-actions{ display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 
+.account-menu .account-email-link-btn{ display: block; margin-top: 10px; }
+
 .account-login-options{ display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .account-email-link-btn{
   background: none; border: none; font-family: inherit; font-size: .78rem; font-weight: 600;

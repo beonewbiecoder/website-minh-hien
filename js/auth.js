@@ -238,29 +238,36 @@ function accountSlotHTML_(user){
       </div>`;
   }
   return `
-    <div class="account-login-options">
-      <button type="button" class="btn btn-outline btn-sm account-google-btn">Đăng nhập Google</button>
-      <button type="button" class="account-email-link-btn">hoặc dùng email</button>
+    <div class="account-menu-wrap">
+      <button type="button" class="btn btn-outline btn-sm account-btn-el">Đăng nhập</button>
+      <div class="account-menu">
+        <button type="button" class="btn btn-outline btn-sm btn-block account-google-btn">Đăng nhập Google</button>
+        <button type="button" class="account-email-link-btn">hoặc dùng email</button>
+      </div>
     </div>`;
 }
 
+/* Nút tài khoản (dù đã đăng nhập hay chưa) đều dùng chung 1 nút gọn +
+   menu sổ xuống khi bấm — giữ header luôn gọn, không tràn viền dù ở
+   trạng thái nào (trước đây bản "chưa đăng nhập" hiện 2 nút xếp chồng
+   ngay trên thanh header, gây tràn ngang trên desktop). */
 function wireAccountSlot_(slot, user){
   if(!isFirebaseConfigured()){
     const btn = slot.querySelector(".account-btn-el");
     btn.addEventListener("click", () => showToast("Đăng nhập chưa được cấu hình"));
     return;
   }
+  const btn = slot.querySelector(".account-btn-el");
+  const menu = slot.querySelector(".account-menu");
+  btn.addEventListener("click", () => menu.classList.toggle("open"));
+  document.addEventListener("click", (e) => {
+    if(!slot.contains(e.target)) menu.classList.remove("open");
+  });
   if(user){
-    const btn = slot.querySelector(".account-btn-el");
-    const menu = slot.querySelector(".account-menu");
-    btn.addEventListener("click", () => menu.classList.toggle("open"));
     slot.querySelector(".account-signout-el").addEventListener("click", () => signOutUser());
-    document.addEventListener("click", (e) => {
-      if(!slot.contains(e.target)) menu.classList.remove("open");
-    });
   }else{
-    slot.querySelector(".account-google-btn").addEventListener("click", signInWithGoogle);
-    slot.querySelector(".account-email-link-btn").addEventListener("click", openEmailAuthModal);
+    slot.querySelector(".account-google-btn").addEventListener("click", () => { menu.classList.remove("open"); signInWithGoogle(); });
+    slot.querySelector(".account-email-link-btn").addEventListener("click", () => { menu.classList.remove("open"); openEmailAuthModal(); });
   }
 }
 
