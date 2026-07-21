@@ -120,11 +120,11 @@ function renderLoading(){
   wrap.innerHTML = `<p class="muted text-center" style="padding:40px 0;">Đang tải đơn hàng...</p>`;
 }
 
-function renderLoadError(){
+function renderLoadError(message){
   wrap.innerHTML = `
     <div class="empty-state">
       <h3>Không tải được đơn hàng</h3>
-      <p>Vui lòng thử lại sau hoặc gọi hotline 091 815 9870 để được hỗ trợ.</p>
+      <p>${message ? message : "Vui lòng thử lại sau hoặc gọi hotline 091 815 9870 để được hỗ trợ."}</p>
       <button type="button" class="btn btn-outline" id="retry-btn" style="margin-top:10px;">Thử lại</button>
     </div>`;
   document.getElementById("retry-btn").addEventListener("click", loadOrders);
@@ -184,9 +184,17 @@ function renderOrders(orders){
 async function loadOrders(){
   renderLoading();
   const idToken = await getCurrentIdToken();
+  if(!idToken){
+    renderLoadError("Chưa lấy được thông tin đăng nhập. Vui lòng đăng xuất rồi đăng nhập lại.");
+    return;
+  }
   const res = await postToAppsScriptJSON({ type: "my_orders", idToken });
-  if(!res || !res.success){
-    renderLoadError();
+  if(!res){
+    renderLoadError("Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.");
+    return;
+  }
+  if(!res.success){
+    renderLoadError(res.error || "Có lỗi xảy ra, vui lòng thử lại.");
     return;
   }
   renderOrders(res.orders || []);

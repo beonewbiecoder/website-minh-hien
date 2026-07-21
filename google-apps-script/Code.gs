@@ -150,8 +150,12 @@ function saveOrder(data) {
 // Xác thực lại idToken Firebase với chính máy chủ Google (Identity Toolkit) —
 // KHÔNG tin trực tiếp email do trình duyệt gửi lên, tránh khách giả email
 // người khác để xem/huỷ đơn của họ. Trả về email đã xác minh, hoặc null.
+// Trả về { email, error } thay vì chỉ email/null — giữ lại lý do thất bại cụ thể
+// (mã lỗi HTTP, nội dung Google trả về...) để hiện ra khi debug, thay vì chỉ
+// biết chung chung "xác thực thất bại" mà không rõ tại đâu.
 function verifyFirebaseIdToken_(idToken) {
-  if (!idToken || !FIREBASE_API_KEY) return null;
+  if (!idToken) return { email: null, error: "Thiếu token đăng nhập (idToken rỗng)." };
+  if (!FIREBASE_API_KEY) return { email: null, error: "Server (Code.gs) chưa điền FIREBASE_API_KEY." };
   try {
     const res = UrlFetchApp.fetch(
       "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=" + FIREBASE_API_KEY,
@@ -162,20 +166,28 @@ function verifyFirebaseIdToken_(idToken) {
         muteHttpExceptions: true
       }
     );
-    if (res.getResponseCode() !== 200) return null;
-    const data = JSON.parse(res.getContentText());
+    const code = res.getResponseCode();
+    const bodyText = res.getContentText();
+    if (code !== 200) {
+      return { email: null, error: "Google từ chối xác thực (mã " + code + "): " + bodyText.slice(0, 300) };
+    }
+    const data = JSON.parse(bodyText);
     const user = data.users && data.users[0];
-    return (user && user.email) ? user.email : null;
+    if (!user || !user.email) {
+      return { email: null, error: "Xác thực thành công nhưng không thấy email trong phản hồi." };
+    }
+    return { email: user.email, error: null };
   } catch (err) {
-    return null;
+    return { email: null, error: "Lỗi khi gọi Google xác thực: " + String(err) };
   }
 }
 
 function handleMyOrders_(data) {
-  const email = verifyFirebaseIdToken_(data.idToken);
-  if (!email) {
-    return jsonOutput_({ success: false, error: "Không xác thực được tài khoản, vui lòng đăng nhập lại." });
+  const auth = verifyFirebaseIdToken_(data.idToken);
+  if (!auth.email) {
+    return jsonOutput_({ success: false, error: auth.error });
   }
+  const email = auth.email;
   const sheet = getSheet_(SHEET_ORDERS);
   const rows = sheet.getDataRange().getValues();
   if (rows.length < 2) return jsonOutput_({ success: true, orders: [] });
@@ -205,10 +217,11 @@ function handleMyOrders_(data) {
 }
 
 function handleCancelOrder_(data) {
-  const email = verifyFirebaseIdToken_(data.idToken);
-  if (!email) {
-    return jsonOutput_({ success: false, error: "Không xác thực được tài khoản, vui lòng đăng nhập lại." });
+  const auth = verifyFirebaseIdToken_(data.idToken);
+  if (!auth.email) {
+    return jsonOutput_({ success: false, error: auth.error });
   }
+  const email = auth.email;
   const orderCode = data.orderCode;
   if (!orderCode) return jsonOutput_({ success: false, error: "Thiếu mã đơn hàng." });
 
