@@ -126,7 +126,10 @@ function ensureOrdersHeader_(sheet) {
 // kèm tô màu theo trạng thái — tránh gõ tay sai chính tả làm trang web không nhận
 // diện được trạng thái. Chạy lại hàm này bất cứ lúc nào cũng an toàn (tự dọn rule
 // màu cũ trước khi tạo lại, không bị cộng dồn trùng lặp).
-function setupOrdersStatusDropdown_() {
+// LƯU Ý: tên hàm KHÔNG được kết thúc bằng dấu "_" — Apps Script (bản gắn với
+// Sheet) tự ẩn mọi hàm có tên kết thúc bằng "_" khỏi danh sách "chọn hàm để
+// Chạy", coi đó là hàm nội bộ. Hàm này cần hiện ra để người dùng tự chạy tay.
+function setupOrdersStatusDropdown() {
   const sheet = getSheet_(SHEET_ORDERS);
   ensureOrdersHeader_(sheet);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
