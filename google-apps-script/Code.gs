@@ -631,6 +631,15 @@ function getOrCreateProductImagesFolder_() {
   return DriveApp.createFolder(PRODUCT_IMAGES_FOLDER_NAME);
 }
 
+// CHẠY TAY 1 LẦN để xin quyền Google Drive (chọn hàm này ở dropdown cạnh nút
+// Run, bấm Run) — chạm trực tiếp vào DriveApp nên chắc chắn sẽ hiện popup xin
+// quyền nếu chưa cấp. Chạy xong không lỗi gì thì xem "Nhật ký thực thi" thấy
+// dòng "OK - Thư mục Drive đã sẵn sàng" là xong, không cần chạy lại nữa.
+function testDriveAccess() {
+  const folder = getOrCreateProductImagesFolder_();
+  console.log("OK - Thư mục Drive đã sẵn sàng: " + folder.getUrl());
+}
+
 // images: mảng { name, mimeType, base64 } gửi từ trang quản lý (đọc file bằng
 // FileReader phía trình duyệt) — lưu vào Drive, đặt quyền "ai có link cũng xem
 // được", trả về URL hiển thị trực tiếp được bằng thẻ <img>.
