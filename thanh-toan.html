@@ -106,15 +106,21 @@ function paymentLabel(v){ return v === "bank" ? "Chuyển khoản ngân hàng" :
 
 function renderCheckout(){
   const wrap = document.getElementById("checkout-wrap");
+  const cartIsEmpty = getCart().length === 0;
   const items = cartDetailed();
 
+  // Giống trang giỏ hàng: localStorage có sản phẩm nhưng cartDetailed() rỗng
+  // nghĩa là dữ liệu thật từ Sheet chưa tải xong (chưa khớp được ID), KHÔNG
+  // phải giỏ hàng trống thật — trước đây trang này không tự vẽ lại nên bị kẹt
+  // cứng luôn ở màn "trống" nếu rơi đúng lúc dữ liệu chưa kịp về.
   if(items.length === 0){
-    wrap.innerHTML = `
-      <div class="empty-state">
-        <h3>Giỏ hàng đang trống</h3>
-        <p>Hãy thêm sản phẩm trước khi thanh toán.</p>
-        <a href="san-pham.html" class="btn btn-primary" style="margin-top:10px;">Xem sản phẩm</a>
-      </div>`;
+    wrap.innerHTML = (!cartIsEmpty && !productsSettled)
+      ? `<p class="muted" style="padding:60px 0;text-align:center;">Đang tải giỏ hàng...</p>`
+      : `<div class="empty-state">
+          <h3>Giỏ hàng đang trống</h3>
+          <p>Hãy thêm sản phẩm trước khi thanh toán.</p>
+          <a href="san-pham.html" class="btn btn-primary" style="margin-top:10px;">Xem sản phẩm</a>
+        </div>`;
     return;
   }
 
@@ -417,6 +423,8 @@ function showConfirmation(order){
 }
 
 renderCheckout();
+productsReady.then(renderCheckout);
+window.addEventListener("products-updated", renderCheckout);
 </script>
 </body>
 </html>

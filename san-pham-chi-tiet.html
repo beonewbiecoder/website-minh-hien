@@ -122,12 +122,16 @@ function renderProductDetail(){
   const container = document.getElementById("pd-container");
 
   if(!product){
-    container.innerHTML = `
-      <div class="empty-state">
-        <h3>Không tìm thấy sản phẩm</h3>
-        <p>Sản phẩm có thể đã ngừng kinh doanh. Vui lòng xem danh sách sản phẩm khác.</p>
-        <a href="san-pham.html" class="btn btn-primary" style="margin-top:14px;">Xem tất cả sản phẩm</a>
-      </div>`;
+    // Dữ liệu thật từ Sheet có thể chưa tải xong (sản phẩm mới thêm chưa kịp
+    // đồng bộ) — chỉ kết luận "không tìm thấy" SAU KHI đã chắc chắn tải xong
+    // (productsSettled), tránh hiện nhầm lỗi trong lúc đang tải.
+    container.innerHTML = productsSettled
+      ? `<div class="empty-state">
+          <h3>Không tìm thấy sản phẩm</h3>
+          <p>Sản phẩm có thể đã ngừng kinh doanh. Vui lòng xem danh sách sản phẩm khác.</p>
+          <a href="san-pham.html" class="btn btn-primary" style="margin-top:14px;">Xem tất cả sản phẩm</a>
+        </div>`
+      : `<p class="muted" style="padding:60px 0;text-align:center;">Đang tải sản phẩm...</p>`;
     return;
   }
 
@@ -250,6 +254,9 @@ function renderProductDetail(){
   }
 }
 renderProductDetail();
+// "products-updated" chỉ bắn khi tải thành công — productsReady đảm bảo dù tải
+// lỗi/thất bại thì trang vẫn vẽ lại 1 lần cuối để thoát khỏi trạng thái "Đang tải...".
+productsReady.then(renderProductDetail);
 window.addEventListener("products-updated", renderProductDetail);
 </script>
 </body>

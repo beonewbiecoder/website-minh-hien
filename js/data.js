@@ -338,8 +338,18 @@ function formatVND(n){
    hoặc Sheet trống thì giữ nguyên dữ liệu mẫu ở trên — website vẫn
    chạy bình thường.
    ========================================================= */
+
+// Báo hiệu "đã có kết quả từ Sheet" (thành công, lỗi mạng, hay chưa cấu hình đều
+// tính xong) — các trang cần tra cứu ĐÚNG 1 sản phẩm cụ thể theo ID (chi tiết sản
+// phẩm, giỏ hàng, thanh toán) phải đợi cờ này rồi mới được kết luận "không tìm
+// thấy"/"trống", tránh hiện nhầm lỗi trong lúc dữ liệu thật (sản phẩm mới thêm
+// qua trang quản lý, chưa có trong dữ liệu mẫu) vẫn đang tải về.
+let productsSettled = false;
+let resolveProductsReady_;
+const productsReady = new Promise(resolve => { resolveProductsReady_ = resolve; });
+
 function refreshProductsFromSheet(){
-  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL) return;
+  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL){ productsSettled = true; resolveProductsReady_(); return; }
   fetch(APPS_SCRIPT_URL + "?action=products")
     .then(res => res.json())
     .then(data => {
@@ -352,6 +362,9 @@ function refreshProductsFromSheet(){
         window.dispatchEvent(new Event("products-updated"));
       }
     })
-    .catch(() => { /* giữ dữ liệu mẫu nếu chưa kết nối được Sheet */ });
+    .catch(() => { /* giữ dữ liệu mẫu nếu chưa kết nối được Sheet */ })
+    .finally(() => { productsSettled = true; resolveProductsReady_(); });
 }
-document.addEventListener("DOMContentLoaded", refreshProductsFromSheet);
+// Gọi ngay khi file này chạy xong (không đợi DOMContentLoaded) — fetch không cần
+// DOM sẵn sàng, gọi sớm hơn giúp dữ liệu thật về nhanh hơn vài trăm ms.
+refreshProductsFromSheet();
