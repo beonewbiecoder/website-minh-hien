@@ -562,6 +562,10 @@ function getProducts() {
       : [];
     const model3dIdx = idx("Model 3D");
     const model3d = model3dIdx !== -1 ? String(row[model3dIdx] || "").trim() : "";
+    // Mô tả chi tiết (tuỳ chọn) — hiện ở cuối trang chi tiết sản phẩm, sau phần
+    // "Sản phẩm liên quan", KHÔNG hiện ở khu vực đầu trang để giữ gọn/tối giản.
+    const longDescIdx = idx("Mô tả chi tiết");
+    const longDesc = longDescIdx !== -1 ? String(row[longDescIdx] || "").trim() : "";
 
     const idCell = row[idx("ID")];
     products.push({
@@ -579,7 +583,8 @@ function getProducts() {
       // Cột "Tình trạng" là tuỳ chọn — nếu Sheet chưa có cột này thì mặc định Còn hàng
       status: String(row[idx("Tình trạng")] || "Còn hàng").trim(),
       images: images,
-      model3d: model3d
+      model3d: model3d,
+      longDesc: longDesc
     });
   }
   return products;
@@ -611,7 +616,7 @@ function verifyAdmin_(idToken) {
 // chỉ tự thêm cột nào còn thiếu vào cuối, an toàn với Sheet Products đã có dữ
 // liệu/thứ tự cột tự sắp xếp từ trước.
 const PRODUCTS_REQUIRED_COLUMNS_ = ["ID", "Tên sản phẩm", "Danh mục", "Kích thước", "Giá (VNĐ)", "Đơn vị",
-  "Mô tả", "Nhãn nổi bật", "Icon", "Tình trạng", "Tồn kho", "Hình ảnh", "Model 3D",
+  "Mô tả", "Mô tả chi tiết", "Nhãn nổi bật", "Icon", "Tình trạng", "Tồn kho", "Hình ảnh", "Model 3D",
   "Thông số 1 - Tên", "Thông số 1 - Giá trị", "Thông số 2 - Tên", "Thông số 2 - Giá trị",
   "Thông số 3 - Tên", "Thông số 3 - Giá trị", "Thông số 4 - Tên", "Thông số 4 - Giá trị",
   "Thông số 5 - Tên", "Thông số 5 - Giá trị"];
@@ -698,6 +703,7 @@ function handleAdminSaveProduct_(data) {
   rowValues["Giá (VNĐ)"] = Number(data.price) || 0;
   rowValues["Đơn vị"] = data.unit || "cái";
   rowValues["Mô tả"] = data.desc || "";
+  rowValues["Mô tả chi tiết"] = data.longDesc || "";
   rowValues["Nhãn nổi bật"] = data.badge || "";
   rowValues["Icon"] = data.icon || "";
   rowValues["Tình trạng"] = data.status || "Còn hàng";

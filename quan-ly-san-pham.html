@@ -248,8 +248,13 @@ function renderForm(product){
         </div>
       </div>
       <div class="form-group">
-        <label>Mô tả</label>
+        <label>Mô tả ngắn <span class="hint">(hiện ngay đầu trang chi tiết sản phẩm)</span></label>
         <textarea id="f-desc" rows="3">${product ? product.desc : ""}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Mô tả chi tiết <span class="hint">(không bắt buộc — hiện ở cuối trang chi tiết, sau phần "Sản phẩm liên quan", không giới hạn độ dài)</span></label>
+        <textarea id="f-longdesc" rows="6" placeholder="Viết càng kỹ càng tốt: hướng dẫn chọn size, cách lắp đặt, lưu ý bảo quản... Xuống dòng để tách đoạn.">${product && product.longDesc ? product.longDesc : ""}</textarea>
       </div>
 
       <div class="form-group">
@@ -379,6 +384,7 @@ async function submitForm(e){
     status: document.getElementById("f-status").value,
     stock: document.getElementById("f-stock").value,
     desc: document.getElementById("f-desc").value.trim(),
+    longDesc: document.getElementById("f-longdesc").value.trim(),
     model3d: document.getElementById("f-model3d").value.trim(),
     specs,
     keepImageUrls: currentImageUrls,

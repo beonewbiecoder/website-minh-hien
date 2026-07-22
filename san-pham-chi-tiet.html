@@ -64,6 +64,15 @@
   </div>
 </section>
 
+<section class="section" id="detail-info-section" style="display:none;">
+  <div class="container" style="max-width:820px;">
+    <div class="section-head" style="text-align:left;margin-bottom:20px;">
+      <h2>Thông tin chi tiết</h2>
+    </div>
+    <div id="detail-info-content" class="detail-info-content"></div>
+  </div>
+</section>
+
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid">
@@ -148,7 +157,7 @@ function renderProductDetail(){
     <div class="pd-wrap">
       <div class="pd-gallery-wrap">
         <div class="pd-gallery" style="color:var(--navy)">
-          ${product.badge ? `<span class="badge" style="position:absolute;">${product.badge}</span>` : ""}
+          ${product.badge ? `<span class="badge">${product.badge}</span>` : ""}
           ${product.images && product.images.length
             ? `<img src="${product.images[0]}" alt="${product.name}" id="pd-main-img">`
             : productIcon(product.icon, 220)}
@@ -227,6 +236,17 @@ function renderProductDetail(){
     document.getElementById("related-section").style.display = "block";
     const relEl = document.getElementById("related-products");
     relEl.innerHTML = related.map(productCardHTML).join("");
+  }
+
+  // Mô tả chi tiết (không bắt buộc) — đặt hẳn xuống cuối trang, sau "Sản phẩm
+  // liên quan", để không làm rối phần đầu trang vốn đang tối giản. Sản phẩm nào
+  // chưa nhập mô tả chi tiết thì ẩn hẳn cả section, không hiện khung trống.
+  if(product.longDesc){
+    document.getElementById("detail-info-section").style.display = "block";
+    document.getElementById("detail-info-content").innerHTML = product.longDesc
+      .split(/\n{2,}/)
+      .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .join("");
   }
 }
 renderProductDetail();
