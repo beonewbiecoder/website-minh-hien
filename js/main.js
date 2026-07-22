@@ -309,46 +309,28 @@ function renderAIChatWidget(){
 document.addEventListener("DOMContentLoaded", renderAIChatWidget);
 
 /* ---------- Card sản phẩm dùng chung ---------- */
+// Cả thẻ sản phẩm là 1 link duy nhất (kiểu Shopee) — bấm vào bất kỳ đâu trên
+// thẻ (ảnh, tên, giá...) đều vào thẳng trang chi tiết. Không còn nút "Thêm vào
+// giỏ"/"Chi tiết" riêng ở đây nữa — thêm vào giỏ chỉ làm ở trang chi tiết sản phẩm.
 function productCardHTML(p){
   const stock = getProductStock(p);
   const outOfStock = stock <= 0;
   const lowStock = !outOfStock && stock <= 5;
-  const addBtn = outOfStock
-    ? `<span class="stock-out-badge">Tạm hết hàng</span>`
-    : `<button class="btn btn-primary btn-add" data-id="${p.id}">Thêm vào giỏ</button>`;
   return `
-    <div class="product-card" data-id="${p.id}" data-cat="${p.category}" data-name="${p.name.toLowerCase()}">
-      <a href="san-pham-chi-tiet.html?id=${p.id}" class="product-thumb" style="color:var(--navy)">
+    <a href="san-pham-chi-tiet.html?id=${p.id}" class="product-card" data-id="${p.id}" data-cat="${p.category}" data-name="${p.name.toLowerCase()}">
+      <div class="product-thumb">
         ${p.badge ? `<span class="badge">${p.badge}</span>` : ""}
         ${productIcon(p.icon, 72)}
-      </a>
+      </div>
       <div class="product-body">
         <span class="product-cat">${p.size}</span>
-        <a href="san-pham-chi-tiet.html?id=${p.id}"><h3 class="product-title">${p.name}</h3></a>
+        <h3 class="product-title">${p.name}</h3>
         <p class="product-desc">${p.desc}</p>
         <div class="product-price">${formatVND(p.price)} <small>/ ${p.unit}</small></div>
+        ${outOfStock ? `<span class="stock-out-badge">Tạm hết hàng</span>` : ""}
         ${lowStock ? `<div class="stock-low">Chỉ còn ${stock} sản phẩm</div>` : ""}
-        <div class="product-actions">
-          ${addBtn}
-          <a href="san-pham-chi-tiet.html?id=${p.id}" class="btn btn-outline">Chi tiết</a>
-        </div>
       </div>
-    </div>`;
-}
-
-function bindAddToCartButtons(root){
-  (root || document).querySelectorAll(".btn-add").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const result = addToCart(btn.dataset.id, 1);
-      if(!result.added){
-        showToast(`Sản phẩm đã hết hàng`);
-      }else if(result.capped){
-        showToast(`Chỉ còn ${result.stock} sản phẩm — đã thêm tối đa vào giỏ`);
-      }else{
-        showToast("Đã thêm vào giỏ hàng ✓");
-      }
-    });
-  });
+    </a>`;
 }
 
 /* ---------- Trang chủ: danh mục nổi bật ---------- */
@@ -370,7 +352,6 @@ function renderFeaturedProducts(containerId, limit){
   if(!el) return;
   const list = PRODUCTS.filter(p => p.badge).slice(0, limit || 6);
   el.innerHTML = list.map(productCardHTML).join("");
-  bindAddToCartButtons(el);
 }
 
 /* ---------- Trang danh sách sản phẩm với filter/tìm kiếm ---------- */
@@ -427,7 +408,6 @@ function initProductListing(){
     }else{
       document.getElementById("empty-state").style.display = "none";
       grid.innerHTML = filtered.map(productCardHTML).join("");
-      bindAddToCartButtons(grid);
     }
   }
   render();

@@ -418,8 +418,6 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 .product-desc{ color: var(--text-muted); font-size: .88rem; flex: 1; }
 .product-price{ font-size: 1.15rem; font-weight: 800; color: var(--navy); }
 .product-price small{ color: var(--text-muted); font-weight: 500; font-size: .78rem; }
-.product-actions{ display: flex; gap: 8px; margin-top: 6px; }
-.product-actions .btn{ flex: 1; padding: 11px 14px; font-size: .92rem; min-height: 42px; }
 
 .empty-state{
   text-align: center; padding: 60px 20px; color: var(--text-muted);
@@ -575,6 +573,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 /* ---------- Breadcrumb ---------- */
 .breadcrumb{ font-size: .88rem; color: var(--text-muted); margin-bottom: 18px; }
 .breadcrumb a:hover{ color: var(--navy); }
+.pd-back-btn{ margin-bottom: 14px; }
 
 /* ---------- Footer ---------- */
 .site-footer{ background: var(--navy-dark); color: #b9cbdb; padding: 50px 0 20px; margin-top: 60px; }

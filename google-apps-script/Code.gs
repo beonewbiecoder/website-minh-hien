@@ -121,6 +121,58 @@ function ensureOrdersHeader_(sheet) {
   }
 }
 
+// CHẠY TAY 1 LẦN (chọn hàm này ở dropdown cạnh nút Run trong Apps Script editor,
+// bấm Run) để biến cột "Trạng thái" trong Sheet Orders thành ô chọn sẵn (dropdown)
+// kèm tô màu theo trạng thái — tránh gõ tay sai chính tả làm trang web không nhận
+// diện được trạng thái. Chạy lại hàm này bất cứ lúc nào cũng an toàn (tự dọn rule
+// màu cũ trước khi tạo lại, không bị cộng dồn trùng lặp).
+function setupOrdersStatusDropdown_() {
+  const sheet = getSheet_(SHEET_ORDERS);
+  ensureOrdersHeader_(sheet);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const statusCol = headers.indexOf("Trạng thái") + 1;
+  if (statusCol === 0) {
+    throw new Error("Không tìm thấy cột Trạng thái trong Sheet Orders.");
+  }
+
+  // Áp cho 500 dòng kể từ dòng 2 — đủ dùng cho nhiều tháng đơn hàng. Nếu sau này
+  // vượt quá, chạy lại hàm này để mở rộng thêm.
+  const numRows = 500;
+  const range = sheet.getRange(2, statusCol, numRows, 1);
+
+  const statusList = [STATUS_CHO_XAC_NHAN, STATUS_DANG_CHUAN_BI, STATUS_DANG_GIAO, STATUS_HOAN_TAT, STATUS_DA_HUY];
+  const validationRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(statusList, true)
+    .setAllowInvalid(false)
+    .build();
+  range.setDataValidation(validationRule);
+
+  // Xoá rule tô màu CŨ từng áp cho đúng vùng này (nếu đã chạy hàm này trước đó)
+  // rồi tạo lại từ đầu — tránh cộng dồn rule trùng nhau mỗi lần chạy lại.
+  const a1 = range.getA1Notation();
+  const keptRules = sheet.getConditionalFormatRules().filter(function (r) {
+    return r.getRanges().every(function (rg) { return rg.getA1Notation() !== a1; });
+  });
+
+  const colorMap = [
+    { text: STATUS_CHO_XAC_NHAN, bg: "#fff2cc", font: "#7f6000" },   // vàng
+    { text: STATUS_DANG_CHUAN_BI, bg: "#d9ead3", font: "#274e13" },  // xanh lá
+    { text: STATUS_DANG_GIAO, bg: "#cfe2f3", font: "#1155cc" },      // xanh dương
+    { text: STATUS_HOAN_TAT, bg: "#b6d7a8", font: "#274e13" },       // xanh lá đậm
+    { text: STATUS_DA_HUY, bg: "#f4cccc", font: "#990000" }          // đỏ
+  ];
+  const newRules = colorMap.map(function (c) {
+    return SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(c.text)
+      .setBackground(c.bg)
+      .setFontColor(c.font)
+      .setRanges([range])
+      .build();
+  });
+
+  sheet.setConditionalFormatRules(keptRules.concat(newRules));
+}
+
 function saveOrder(data) {
   const sheet = getSheet_(SHEET_ORDERS);
   ensureOrdersHeader_(sheet);
