@@ -3,13 +3,11 @@
    Dùng Fuse.js (nhúng qua CDN ở index.html và san-pham.html), chạy
    hoàn toàn trên trình duyệt, không cần backend.
 
-   Nguồn dữ liệu: dùng trực tiếp mảng PRODUCTS đang có (js/data.js) —
-   đây đã là nguồn dữ liệu sản phẩm dùng chung cho toàn site và được
-   đồng bộ tự động từ Google Sheet (xem refreshProductsFromSheet trong
-   data.js). Cố tình KHÔNG tách ra file products.json riêng vì sẽ tạo
-   thêm một nguồn dữ liệu tĩnh dễ bị lệch với Sheet — mọi nơi khác
-   trên site đều lấy dữ liệu sống từ PRODUCTS, nên tìm kiếm cũng vậy
-   để sản phẩm mới thêm trong Sheet lập tức tìm được luôn.
+   Nguồn dữ liệu: dùng trực tiếp mảng PRODUCTS đang có (js/data.js, được
+   js/products-data.js nạp đè bằng dữ liệu thật ngay khi trang tải —
+   xem scripts/build-products.js). PRODUCTS đã cố định ngay từ đầu mỗi
+   lần tải trang nên không cần tự dựng lại index khi có cập nhật giữa
+   chừng như trước đây.
    ========================================================= */
 
 /* ---------- Chuẩn hoá tiếng Việt: bỏ dấu + chữ thường ---------- */
@@ -68,9 +66,6 @@ function fuzzySearchProducts(query){
   }
   return __fuseIndex.search(q).map(r => r.item.__product);
 }
-
-// Sản phẩm đổi mới từ Sheet thì build lại index ở lần tìm kế tiếp
-window.addEventListener("products-updated", () => { __fuseIndex = null; });
 
 /* ---------- Dropdown gợi ý real-time ----------
    Dùng chung cho mọi ô tìm kiếm trên site (trang sản phẩm, trang chủ...).

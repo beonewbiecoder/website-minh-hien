@@ -44,6 +44,13 @@ const ADMIN_EMAILS = ["minhhien.bz@gmail.com", "kmuffin03@gmail.com"];
 // lưu ảnh sản phẩm khách/chủ shop tải lên qua trang quản lý — tự tạo nếu chưa có.
 const PRODUCT_IMAGES_FOLDER_NAME = "Website Minh Hiền - Ảnh sản phẩm";
 
+// Repo GitHub chứa website — dùng để tự động "trigger" GitHub Actions build lại
+// js/products-data.js (dữ liệu sản phẩm tĩnh, tải nhanh) ngay khi sản phẩm/tồn
+// kho thay đổi. Xem triggerProductsRebuild_() bên dưới.
+const GITHUB_OWNER = "beonewbiecoder";
+const GITHUB_REPO = "website-minh-hien";
+const GITHUB_PRODUCTS_WORKFLOW = "build-products.yml";
+
 // Các trạng thái đơn hàng chuẩn hoá — dùng đúng các chuỗi này ở mọi nơi
 // (Sheet, email, trang "Đơn hàng của tôi") để so khớp chính xác.
 const STATUS_CHO_XAC_NHAN = "Chờ xác nhận";
@@ -484,6 +491,10 @@ function adjustStockForItems_(items, sign) {
       }
     }
   });
+  // Gọi 1 lần duy nhất sau khi cập nhật xong hết sản phẩm trong đơn (không gọi
+  // lặp lại trong vòng lặp trên) — báo GitHub build lại dữ liệu tĩnh vì tồn kho
+  // vừa đổi.
+  triggerProductsRebuild_();
 }
 
 function formatDateVN_(value) {
@@ -659,6 +670,38 @@ function saveProductImagesToDrive_(images) {
   });
 }
 
+// Tự động gọi GitHub Actions build lại js/products-data.js (dữ liệu sản phẩm
+// tĩnh, tải nhanh cho khách xem — xem scripts/build-products.js) ngay khi sản
+// phẩm hoặc tồn kho thay đổi, thay vì phải đợi tới lịch chạy định kỳ 30 phút.
+// Cần Script Property "GITHUB_TOKEN" (Personal Access Token, quyền "Actions:
+// write" + "Contents: write" trên đúng repo này) — thiếu thì bỏ qua, không lỗi
+// (vẫn còn lịch chạy định kỳ làm lưới an toàn). Không bao giờ để lỗi ở đây làm
+// hỏng việc lưu sản phẩm/đơn hàng chính — luôn bọc try/catch, chỉ ghi log.
+function triggerProductsRebuild_() {
+  try {
+    const token = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
+    if (!token) {
+      console.error("Chưa cấu hình GITHUB_TOKEN trong Script Properties — bỏ qua tự động build sản phẩm (vẫn có lịch chạy định kỳ 30 phút).");
+      return;
+    }
+    UrlFetchApp.fetch(
+      "https://api.github.com/repos/" + GITHUB_OWNER + "/" + GITHUB_REPO + "/actions/workflows/" + GITHUB_PRODUCTS_WORKFLOW + "/dispatches",
+      {
+        method: "post",
+        contentType: "application/json",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Accept": "application/vnd.github+json"
+        },
+        payload: JSON.stringify({ ref: "master" }),
+        muteHttpExceptions: true
+      }
+    );
+  } catch (err) {
+    console.error("Lỗi khi tự động trigger build sản phẩm: " + err);
+  }
+}
+
 function handleAdminSaveProduct_(data) {
   const admin = verifyAdmin_(data.idToken);
   if (!admin.email) return jsonOutput_({ success: false, error: admin.error });
@@ -729,6 +772,7 @@ function handleAdminSaveProduct_(data) {
     });
   }
 
+  triggerProductsRebuild_();
   return jsonOutput_({ success: true, id: id, images: allImages });
 }
 
@@ -748,6 +792,7 @@ function handleAdminDeleteProduct_(data) {
   for (let r = 1; r < rows.length; r++) {
     if (String(rows[r][idCol]) === id) {
       sheet.deleteRow(r + 1);
+      triggerProductsRebuild_();
       return jsonOutput_({ success: true });
     }
   }

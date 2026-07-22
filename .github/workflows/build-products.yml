@@ -1,0 +1,38 @@
+name: Build dữ liệu sản phẩm từ Google Sheet
+
+on:
+  schedule:
+    # Lưới an toàn — chạy lại mỗi 30 phút phòng khi Apps Script gọi trigger
+    # (workflow_dispatch) bị lỗi mạng, không tự bắn được.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cài Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Chạy build script
+        run: node scripts/build-products.js
+
+      - name: Commit lại js/products-data.js (nếu có thay đổi)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add js/products-data.js
+          if git diff --cached --quiet; then
+            echo "Không có thay đổi, bỏ qua commit."
+          else
+            git commit -m "chore: tự động cập nhật dữ liệu sản phẩm từ Google Sheet"
+            git push
+          fi

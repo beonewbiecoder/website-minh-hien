@@ -416,7 +416,6 @@ function initProductListing(){
     }
   }
   render();
-  window.addEventListener("products-updated", render);
 
   // Tới từ thanh tìm kiếm trang chủ: cuộn tới đúng thanh tìm kiếm (đã tự điền + tự lọc ở trên)
   if(query){

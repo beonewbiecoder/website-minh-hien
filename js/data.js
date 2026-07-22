@@ -312,7 +312,7 @@ let PRODUCTS = [
 ];
 
 /* Tồn kho mẫu — sản phẩm thật sẽ lấy số tồn kho từ cột "Tồn kho" trong Sheet
-   (xem refreshProductsFromSheet). Gán tạm ở đây để demo cảnh báo sắp hết/hết hàng. */
+   (xem js/products-data.js). Gán tạm ở đây để demo cảnh báo sắp hết/hết hàng. */
 const SAMPLE_STOCK_ = {
   "ong-1sn-12": 50, "ong-2sn-34": 40, "ong-4sp-1": 25, "ong-4sh-114": 15,
   "ong-spiral-2": 8, "ong-chiu-nhiet": 20, "ong-r3-38": 0,
@@ -333,38 +333,9 @@ function formatVND(n){
 }
 
 /* =========================================================
-   Tải danh sách sản phẩm mới nhất từ Google Sheet (nếu đã cấu hình
-   APPS_SCRIPT_URL trong js/config.js). Nếu chưa cấu hình, lỗi mạng,
-   hoặc Sheet trống thì giữ nguyên dữ liệu mẫu ở trên — website vẫn
-   chạy bình thường.
+   Dữ liệu sản phẩm THẬT được nạp ngay sau file này bởi js/products-data.js
+   (tự sinh ra bởi GitHub Actions từ Sheet Products, xem scripts/build-products.js)
+   — nạp bằng thẻ <script> bình thường nên có ngay lập tức, không cần chờ gọi
+   mạng tới Apps Script mỗi lần khách vào xem sản phẩm như trước đây. Nếu file
+   đó chưa tồn tại (mới thiết lập lần đầu) thì giữ nguyên dữ liệu mẫu ở trên.
    ========================================================= */
-
-// Báo hiệu "đã có kết quả từ Sheet" (thành công, lỗi mạng, hay chưa cấu hình đều
-// tính xong) — các trang cần tra cứu ĐÚNG 1 sản phẩm cụ thể theo ID (chi tiết sản
-// phẩm, giỏ hàng, thanh toán) phải đợi cờ này rồi mới được kết luận "không tìm
-// thấy"/"trống", tránh hiện nhầm lỗi trong lúc dữ liệu thật (sản phẩm mới thêm
-// qua trang quản lý, chưa có trong dữ liệu mẫu) vẫn đang tải về.
-let productsSettled = false;
-let resolveProductsReady_;
-const productsReady = new Promise(resolve => { resolveProductsReady_ = resolve; });
-
-function refreshProductsFromSheet(){
-  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL){ productsSettled = true; resolveProductsReady_(); return; }
-  fetch(APPS_SCRIPT_URL + "?action=products")
-    .then(res => res.json())
-    .then(data => {
-      if(data && data.success && Array.isArray(data.products) && data.products.length){
-        PRODUCTS.length = 0;
-        data.products.forEach(p => {
-          if(p.stock === undefined || p.stock === null || isNaN(p.stock)) p.stock = 999;
-          PRODUCTS.push(p);
-        });
-        window.dispatchEvent(new Event("products-updated"));
-      }
-    })
-    .catch(() => { /* giữ dữ liệu mẫu nếu chưa kết nối được Sheet */ })
-    .finally(() => { productsSettled = true; resolveProductsReady_(); });
-}
-// Gọi ngay khi file này chạy xong (không đợi DOMContentLoaded) — fetch không cần
-// DOM sẵn sàng, gọi sớm hơn giúp dữ liệu thật về nhanh hơn vài trăm ms.
-refreshProductsFromSheet();
