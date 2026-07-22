@@ -402,7 +402,7 @@ const PRODUCTS_DATA_ = [
       "Kích Thước": "12 li",
       "Vật liệu": "Nhựa"
     },
-    "stock": 7,
+    "stock": 4,
     "status": "Còn hàng",
     "images": [
       "https://drive.google.com/thumbnail?id=1Cpgpudtfjskz2WPnqqHzZhDo2CawJkke&sz=w1000",
