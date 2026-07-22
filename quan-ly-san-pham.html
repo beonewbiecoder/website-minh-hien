@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Quản lý sản phẩm — Cửa Hàng Minh Hiền</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <div class="container">
+      <div class="topbar-links">
+        <a href="tel:0918159870">📞 Hotline: 091 815 9870</a>
+        <a href="lien-he.html">Hệ thống cửa hàng</a>
+      </div>
+      <div class="topbar-links">
+        <a href="lien-he.html">Giao hàng toàn quốc · Tư vấn kỹ thuật miễn phí</a>
+      </div>
+    </div>
+  </div>
+  <div class="container header-main">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">MH</span>
+      <span>CỬA HÀNG MINH HIỀN<small>Ống thủy lực &amp; Rắc co</small></span>
+    </a>
+    <nav class="main-nav">
+      <button type="button" class="main-nav-close" aria-label="Đóng menu">✕</button>
+      <div id="account-slot-mobile"></div>
+      <a href="index.html">Trang chủ</a>
+      <a href="san-pham.html">Sản phẩm</a>
+      <a href="gioi-thieu.html">Giới thiệu</a>
+      <a href="trai-nghiem.html">Trải nghiệm khách hàng</a>
+      <a href="lien-he.html">Liên hệ</a>
+      <a href="don-hang-cua-toi.html">Đơn hàng của tôi</a>
+    </nav>
+    <div class="header-actions">
+      <div id="account-slot"></div>
+      <a href="gio-hang.html" class="icon-btn" aria-label="Giỏ hàng">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-badge" style="display:none">0</span>
+      </a>
+      <button class="nav-toggle" aria-label="Mở menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main class="section-tight">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Trang chủ</a> / Quản lý sản phẩm</div>
+    <h2>Quản lý sản phẩm</h2>
+    <p class="muted" style="margin-top:-8px;margin-bottom:26px;">Trang nội bộ — chỉ tài khoản được cấp quyền mới thêm/sửa/xoá được sản phẩm.</p>
+
+    <div id="admin-wrap"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom">
+      © <span id="year"></span> Cửa Hàng Minh Hiền — Trang quản lý nội bộ.
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+// Chỉ để ẨN/HIỆN giao diện cho gọn — quyền THẬT được kiểm tra lại ở server
+// (Code.gs, ADMIN_EMAILS) trước khi cho lưu/xoá bất cứ gì, nên không cần lo
+// ai đó sửa được danh sách này ở trình duyệt để giả quyền admin.
+const ADMIN_EMAILS_CLIENT_ = ["minhhien.bz@gmail.com", "kmuffin03@gmail.com"];
+
+const ICON_OPTIONS_ = [
+  { value: "hose", label: "Ống (hose)" },
+  { value: "hex", label: "Lục giác (hex)" },
+  { value: "flange", label: "Mặt bích (flange)" },
+  { value: "quick", label: "Khớp nhanh (quick)" },
+  { value: "tee", label: "Chữ T (tee)" },
+  { value: "elbow", label: "Cút góc (elbow)" },
+  { value: "union", label: "Măng sông (union)" },
+  { value: "cap", label: "Nút bịt (cap)" }
+];
+
+const MAX_IMAGES_ = 5;
+const wrap = document.getElementById("admin-wrap");
+
+let allProducts = [];
+let editingProduct = null;   // null = đang thêm sản phẩm mới
+let currentImageUrls = [];   // ảnh cũ giữ lại (khi sửa)
+let pendingImages = [];      // ảnh mới chọn, chưa lưu: { name, mimeType, base64, previewUrl }
+
+/* ---------- Các màn hình trạng thái ---------- */
+function renderLoginGate(){
+  wrap.innerHTML = `
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;color:var(--text-muted)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <h3>Đăng nhập để vào trang quản lý</h3>
+      <p>Chỉ tài khoản Google được cấp quyền mới xem/sửa được dữ liệu sản phẩm.</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px;">
+        <button type="button" class="btn btn-primary btn-lg" id="gate-login-btn">Đăng nhập Google</button>
+        <button type="button" class="account-email-link-btn" id="gate-email-btn">hoặc đăng nhập bằng email</button>
+      </div>
+    </div>`;
+  const btn = document.getElementById("gate-login-btn");
+  if(!isFirebaseConfigured()){
+    btn.addEventListener("click", () => showToast("Đăng nhập chưa được cấu hình"));
+  }else{
+    btn.addEventListener("click", signInWithGoogle);
+  }
+  document.getElementById("gate-email-btn").addEventListener("click", openEmailAuthModal);
+}
+
+function renderNotAuthorized(email){
+  wrap.innerHTML = `
+    <div class="empty-state">
+      <h3>Tài khoản này chưa được cấp quyền</h3>
+      <p>Đang đăng nhập bằng <b>${email}</b> — tài khoản này không có quyền quản lý sản phẩm. Nếu đây là nhầm lẫn, liên hệ chủ shop để được thêm quyền.</p>
+    </div>`;
+}
+
+function renderLoading(){
+  wrap.innerHTML = `<p class="muted" style="padding:40px 0;text-align:center;">Đang tải danh sách sản phẩm...</p>`;
+}
+
+function renderLoadError(message){
+  wrap.innerHTML = `
+    <div class="empty-state">
+      <h3>Không tải được danh sách sản phẩm</h3>
+      <p>${message || "Vui lòng thử lại sau."}</p>
+      <button type="button" class="btn btn-outline" id="admin-retry-btn" style="margin-top:10px;">Thử lại</button>
+    </div>`;
+  document.getElementById("admin-retry-btn").addEventListener("click", loadProducts);
+}
+
+/* ---------- Danh sách sản phẩm ---------- */
+function renderList(){
+  const rows = allProducts.map(p => `
+    <div class="admin-product-row">
+      <div class="admin-product-thumb">${p.images && p.images[0] ? `<img src="${p.images[0]}" alt="">` : productIcon(p.icon, 40)}</div>
+      <div class="admin-product-info">
+        <div class="admin-product-name">${p.name}</div>
+        <div class="muted" style="font-size:.85rem;">${p.size || ""} · ${formatVND(p.price)}/${p.unit} · Tồn kho: ${p.stock}</div>
+      </div>
+      <div class="admin-product-actions">
+        <button type="button" class="btn btn-outline btn-sm" data-edit="${p.id}">Sửa</button>
+        <button type="button" class="btn btn-outline btn-sm admin-delete-btn" data-delete="${p.id}">Xoá</button>
+      </div>
+    </div>`).join("");
+
+  wrap.innerHTML = `
+    <button type="button" class="btn btn-primary" id="admin-add-btn" style="margin-bottom:20px;">+ Thêm sản phẩm mới</button>
+    <div id="admin-list">${rows || `<p class="muted">Chưa có sản phẩm nào.</p>`}</div>`;
+
+  document.getElementById("admin-add-btn").addEventListener("click", () => renderForm(null));
+  wrap.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => renderForm(allProducts.find(p => p.id === btn.dataset.edit)));
+  });
+  wrap.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => deleteProduct(btn.dataset.delete, btn));
+  });
+}
+
+/* ---------- Form thêm/sửa ---------- */
+function specRowsHTML_(product){
+  const specs = product ? Object.entries(product.specs || {}) : [];
+  let html = "";
+  for(let i = 0; i < 5; i++){
+    const name = specs[i] ? specs[i][0] : "";
+    const value = specs[i] ? specs[i][1] : "";
+    html += `
+      <div class="spec-row">
+        <input type="text" class="spec-name" placeholder="Tên thông số (vd: Áp suất)" value="${name}">
+        <input type="text" class="spec-value" placeholder="Giá trị (vd: 88-225 bar)" value="${value}">
+      </div>`;
+  }
+  return html;
+}
+
+function renderForm(product){
+  editingProduct = product;
+  currentImageUrls = product && product.images ? product.images.slice() : [];
+  pendingImages = [];
+
+  const catOptions = CATEGORIES.map(c =>
+    `<option value="${c.slug}" ${product && product.category === c.slug ? "selected" : ""}>${c.name}</option>`).join("");
+  const iconOptions = ICON_OPTIONS_.map(i =>
+    `<option value="${i.value}" ${product && product.icon === i.value ? "selected" : ""}>${i.label}</option>`).join("");
+
+  wrap.innerHTML = `
+    <button type="button" class="btn btn-outline btn-sm" id="admin-back-btn" style="margin-bottom:16px;">← Quay lại danh sách</button>
+    <h3>${product ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</h3>
+    <form id="admin-product-form" style="max-width:720px;">
+      <div class="form-group">
+        <label>Tên sản phẩm *</label>
+        <input type="text" id="f-name" required value="${product ? product.name : ""}">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Danh mục</label>
+          <select id="f-category">${catOptions}</select>
+        </div>
+        <div class="form-group">
+          <label>Kích thước</label>
+          <input type="text" id="f-size" placeholder="VD: Phi 12.7mm (1/2&quot;)" value="${product ? product.size : ""}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Giá (VNĐ) *</label>
+          <input type="number" id="f-price" min="0" required value="${product ? product.price : ""}">
+        </div>
+        <div class="form-group">
+          <label>Đơn vị</label>
+          <input type="text" id="f-unit" placeholder="mét / cái / bộ" value="${product ? product.unit : "cái"}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nhãn nổi bật <span class="hint">(không bắt buộc)</span></label>
+          <input type="text" id="f-badge" placeholder="VD: Bán chạy, Giá tốt" value="${product ? product.badge : ""}">
+        </div>
+        <div class="form-group">
+          <label>Icon minh hoạ <span class="hint">(hiện khi chưa có ảnh thật)</span></label>
+          <select id="f-icon">${iconOptions}</select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tình trạng</label>
+          <select id="f-status">
+            <option value="Còn hàng" ${!product || product.status === "Còn hàng" ? "selected" : ""}>Còn hàng</option>
+            <option value="Hết hàng" ${product && product.status === "Hết hàng" ? "selected" : ""}>Hết hàng</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tồn kho</label>
+          <input type="number" id="f-stock" min="0" value="${product ? product.stock : 0}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Mô tả</label>
+        <textarea id="f-desc" rows="3">${product ? product.desc : ""}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Thông số kỹ thuật <span class="hint">(không bắt buộc, tối đa 5 dòng)</span></label>
+        <div id="spec-rows">${specRowsHTML_(product)}</div>
+      </div>
+
+      <div class="form-group">
+        <label>Hình ảnh sản phẩm <span class="hint">(tối đa ${MAX_IMAGES_} tấm)</span></label>
+        <p class="muted" style="font-size:.85rem;margin:-2px 0 10px;">Chọn ảnh từ máy hoặc điện thoại — ảnh sẽ tự thu nhỏ trước khi tải lên cho nhanh.</p>
+        <div id="image-preview-list" class="admin-thumb-list"></div>
+        <input type="file" id="f-images" accept="image/*" multiple>
+      </div>
+
+      <div class="form-group">
+        <label>Link model 3D <span class="hint">(chưa cần, để dành sau)</span></label>
+        <input type="text" id="f-model3d" placeholder="Dán link model 3D nếu có, chưa có thì bỏ qua" value="${product && product.model3d ? product.model3d : ""}">
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:10px;">
+        <button type="submit" class="btn btn-primary btn-lg" id="admin-save-btn">Lưu sản phẩm</button>
+      </div>
+    </form>`;
+
+  document.getElementById("admin-back-btn").addEventListener("click", renderList);
+  document.getElementById("f-images").addEventListener("change", (e) => handleImageFiles(e.target.files));
+  document.getElementById("admin-product-form").addEventListener("submit", submitForm);
+  renderImagePreviews();
+}
+
+/* ---------- Xử lý ảnh: thu nhỏ bằng canvas trước khi đổi sang base64,
+   tránh ảnh chụp điện thoại quá nặng làm tải lên chậm/thất bại. ---------- */
+function resizeImageFile_(file, maxSize){
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > maxSize || height > maxSize){
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      resolve(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleImageFiles(fileList){
+  const files = Array.from(fileList || []);
+  const totalAfter = currentImageUrls.length + pendingImages.length + files.length;
+  if(totalAfter > MAX_IMAGES_){
+    showToast(`Chỉ được tối đa ${MAX_IMAGES_} tấm ảnh — đang chọn dư ${totalAfter - MAX_IMAGES_} tấm`);
+  }
+  const room = Math.max(0, MAX_IMAGES_ - currentImageUrls.length - pendingImages.length);
+  const toProcess = files.slice(0, room);
+
+  for(const file of toProcess){
+    const dataUrl = await resizeImageFile_(file, 1600);
+    const base64 = dataUrl.split(",")[1];
+    pendingImages.push({ name: file.name, mimeType: "image/jpeg", base64, previewUrl: dataUrl });
+  }
+  document.getElementById("f-images").value = "";
+  renderImagePreviews();
+}
+
+function renderImagePreviews(){
+  const el = document.getElementById("image-preview-list");
+  if(!el) return;
+  const existing = currentImageUrls.map((url, i) => `
+    <div class="admin-thumb">
+      <img src="${url}" alt="">
+      <button type="button" class="admin-thumb-remove" data-remove-existing="${i}" aria-label="Xoá ảnh này">✕</button>
+    </div>`).join("");
+  const pending = pendingImages.map((img, i) => `
+    <div class="admin-thumb">
+      <img src="${img.previewUrl}" alt="">
+      <button type="button" class="admin-thumb-remove" data-remove-pending="${i}" aria-label="Xoá ảnh này">✕</button>
+    </div>`).join("");
+  el.innerHTML = existing + pending;
+
+  el.querySelectorAll("[data-remove-existing]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentImageUrls.splice(Number(btn.dataset.removeExisting), 1);
+      renderImagePreviews();
+    });
+  });
+  el.querySelectorAll("[data-remove-pending]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      pendingImages.splice(Number(btn.dataset.removePending), 1);
+      renderImagePreviews();
+    });
+  });
+}
+
+/* ---------- Lưu / Xoá sản phẩm ---------- */
+async function submitForm(e){
+  e.preventDefault();
+  const saveBtn = document.getElementById("admin-save-btn");
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Đang lưu...";
+
+  const specs = Array.from(document.querySelectorAll("#spec-rows .spec-row")).map(row => ({
+    name: row.querySelector(".spec-name").value.trim(),
+    value: row.querySelector(".spec-value").value.trim()
+  })).filter(s => s.name && s.value);
+
+  const idToken = await getCurrentIdToken();
+  const payload = {
+    type: "admin_save_product",
+    idToken,
+    id: editingProduct ? editingProduct.id : "",
+    name: document.getElementById("f-name").value.trim(),
+    category: document.getElementById("f-category").value,
+    size: document.getElementById("f-size").value.trim(),
+    price: document.getElementById("f-price").value,
+    unit: document.getElementById("f-unit").value.trim() || "cái",
+    badge: document.getElementById("f-badge").value.trim(),
+    icon: document.getElementById("f-icon").value,
+    status: document.getElementById("f-status").value,
+    stock: document.getElementById("f-stock").value,
+    desc: document.getElementById("f-desc").value.trim(),
+    model3d: document.getElementById("f-model3d").value.trim(),
+    specs,
+    keepImageUrls: currentImageUrls,
+    newImages: pendingImages.map(img => ({ name: img.name, mimeType: img.mimeType, base64: img.base64 }))
+  };
+
+  const res = await postToAppsScriptJSON(payload);
+  if(res && res.success){
+    showToast("Đã lưu sản phẩm ✓");
+    await loadProducts();
+  }else{
+    showToast((res && res.error) || "Không lưu được, vui lòng thử lại");
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Lưu sản phẩm";
+  }
+}
+
+async function deleteProduct(id, btn){
+  const product = allProducts.find(p => p.id === id);
+  if(!confirm(`Xoá sản phẩm "${product ? product.name : id}"? Thao tác này không thể hoàn tác.`)) return;
+  btn.disabled = true;
+  const idToken = await getCurrentIdToken();
+  const res = await postToAppsScriptJSON({ type: "admin_delete_product", idToken, id });
+  if(res && res.success){
+    showToast("Đã xoá sản phẩm");
+    loadProducts();
+  }else{
+    showToast((res && res.error) || "Không xoá được, vui lòng thử lại");
+    btn.disabled = false;
+  }
+}
+
+async function loadProducts(){
+  renderLoading();
+  if(typeof APPS_SCRIPT_URL === "undefined" || !APPS_SCRIPT_URL){
+    renderLoadError("Chưa cấu hình APPS_SCRIPT_URL trong js/config.js.");
+    return;
+  }
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + "?action=products").then(r => r.json());
+    if(!res || !res.success){
+      renderLoadError();
+      return;
+    }
+    allProducts = res.products || [];
+    renderList();
+  }catch(err){
+    renderLoadError("Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.");
+  }
+}
+
+onAuthChange(user => {
+  if(!user){ renderLoginGate(); return; }
+  if(!ADMIN_EMAILS_CLIENT_.includes((user.email || "").toLowerCase())){ renderNotAuthorized(user.email); return; }
+  loadProducts();
+});
+</script>
+</body>
+</html>

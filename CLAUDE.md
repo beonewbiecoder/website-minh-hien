@@ -16,7 +16,7 @@
 
 ## 2. Cấu trúc file/trang hiện có
 
-**Trang chính (11 file HTML ở gốc repo):**
+**Trang chính (12 file HTML ở gốc repo):**
 
 | File | Chức năng |
 |---|---|
@@ -31,6 +31,7 @@
 | `bai-viet.html` | Danh sách toàn bộ bài viết "Kiến thức thủy lực", phân trang phía trình duyệt (9 bài/trang) |
 | `don-hang-cua-toi.html` | Tra cứu đơn hàng theo tài khoản đã đăng nhập, tự huỷ đơn — xem mục 5 |
 | `bai-viet/*.html` | Trang chi tiết từng bài viết — **tự động sinh ra**, KHÔNG sửa tay (xem phần build bên dưới) |
+| `quan-ly-san-pham.html` | **Trang quản lý sản phẩm nội bộ** (2026-07-22) — KHÔNG có trong menu/nav, không ai vô tình bấm trúng. Chỉ 2 tài khoản trong `ADMIN_EMAILS` (`Code.gs`) mới thêm/sửa/xoá được sản phẩm — xem chi tiết đầy đủ ở mục 5. |
 
 Tất cả các trang đều load chung `js/config.js` → `js/data.js` → `js/cart.js` → `js/auth.js` → `js/main.js`, cộng thêm SDK Firebase (`firebase-app-compat.js`, `firebase-auth-compat.js`) qua CDN trước `config.js`.
 
@@ -121,6 +122,11 @@ FIREBASE_API_KEY = đã điền, PHẢI khớp với FIREBASE_CONFIG.apiKey ở 
                     người khác để xem/huỷ đơn của họ. apiKey Firebase là public, không phải bí mật.
 GEMINI_MODEL     = "gemini-2.5-flash"
 GEMINI_API_KEY   = lưu trong Script Properties (Project Settings), KHÔNG có trong code
+ADMIN_EMAILS     = ["minhhien.bz@gmail.com", "kmuffin03@gmail.com"]   // 2026-07-22, 2 tài khoản
+                    được phép thêm/sửa/xoá sản phẩm qua quan-ly-san-pham.html — xác thực lại
+                    qua verifyAdmin_() (Identity Toolkit), KHÔNG tin email trình duyệt gửi lên
+PRODUCT_IMAGES_FOLDER_NAME = "Website Minh Hiền - Ảnh sản phẩm"   // tên thư mục Drive tự tạo
+                    để lưu ảnh sản phẩm tải lên qua trang quản lý
 ```
 
 **Firebase project đã cấu hình xong (project `chmh-e22e1`):**
@@ -156,12 +162,13 @@ GEMINI_API_KEY   = lưu trong Script Properties (Project Settings), KHÔNG có t
 | Thông tin thật cửa hàng | ✅ Hoàn thành | tất cả các trang | Tên, SĐT, email, địa chỉ, giờ làm việc, Maps thật |
 | Đánh giá khách hàng | ⚠️ **Vẫn là dữ liệu mẫu** | `trai-nghiem.html`, `index.html` | Xem mục 8 |
 | Dữ liệu sản phẩm | ⚠️ **Vẫn là 17 sản phẩm mẫu** | `js/data.js` | Xem mục 8 |
+| **Quản lý sản phẩm (admin)** | ✅ Hoàn thành (2026-07-22, **chưa test trên Sheet thật**) | `quan-ly-san-pham.html`, `Code.gs` (`handleAdminSaveProduct_`/`handleAdminDeleteProduct_`/`saveProductImagesToDrive_`) | Trang nội bộ KHÔNG có trong menu, chỉ 2 email trong `ADMIN_EMAILS` mới thêm/sửa/xoá được sản phẩm (client-side check chỉ để ẩn/hiện giao diện, quyền THẬT xác thực lại ở server qua `verifyAdmin_()` giống hệt cơ chế huỷ đơn — không tin email trình duyệt gửi lên). Form nhập đủ trường: tên/danh mục/kích thước/giá/đơn vị/mô tả/nhãn/icon/tình trạng/tồn kho/5 thông số kỹ thuật. Ảnh: chọn tối đa 5 tấm, tự động resize bằng canvas (còn ≤1600px, JPEG q=0.8) trước khi gửi lên — Apps Script lưu vào thư mục Drive `PRODUCT_IMAGES_FOLDER_NAME` (tự tạo), set quyền "ai có link cũng xem được", trả về URL `drive.google.com/thumbnail?id=...`. Nhiều URL lưu cách nhau bằng dấu phẩy trong 1 cột "Hình ảnh" của Sheet Products (xem mục 6). Model 3D: mới có ô nhập LINK (chưa làm upload file thật/hiển thị 3D — để dành sau, xem mục 8). Card sản phẩm (`productCardHTML`) và trang chi tiết (gallery + thumbnail bấm đổi ảnh) tự ưu tiên hiện ảnh thật nếu `images.length > 0`, fallback về icon SVG cũ nếu chưa có ảnh. |
 
 ## 6. Nguồn dữ liệu (Google Sheet)
 
 Sheet có (hoặc cần có) các tab sau, đọc/ghi qua `Code.gs`:
 
-- **Products** — sản phẩm hiển thị trên site. Cột: `ID, Tên sản phẩm, Danh mục, Kích thước, Giá (VNĐ), Đơn vị, Mô tả, Nhãn nổi bật, Icon, Thông số 1-5 (Tên/Giá trị mỗi cặp)`. Cột **`Tình trạng`** (Còn hàng/Hết hàng, tuỳ chọn) và **`Tồn kho`** (số lượng, tuỳ chọn — **chưa xác nhận đã thêm vào Sheet thật**) — thiếu thì code tự mặc định "Còn hàng"/không giới hạn (999).
+- **Products** — sản phẩm hiển thị trên site. Cột: `ID, Tên sản phẩm, Danh mục, Kích thước, Giá (VNĐ), Đơn vị, Mô tả, Nhãn nổi bật, Icon, Thông số 1-5 (Tên/Giá trị mỗi cặp)`. Cột **`Tình trạng`** (Còn hàng/Hết hàng, tuỳ chọn) và **`Tồn kho`** (số lượng, tuỳ chọn — **chưa xác nhận đã thêm vào Sheet thật**) — thiếu thì code tự mặc định "Còn hàng"/không giới hạn (999). **2 cột mới (2026-07-22): `Hình ảnh`** (nhiều URL Drive cách nhau bằng dấu phẩy, do trang `quan-ly-san-pham.html` tự ghi vào, KHÔNG tự nhập tay) và **`Model 3D`** (1 URL, hiện chỉ là link text, chưa có tính năng hiển thị 3D thật). Khác với Orders, `ensureProductsColumns_()` **KHÔNG overwrite header** nếu sai khác — chỉ tự thêm cột nào còn thiếu vào cuối, an toàn với thứ tự cột Products đã tự sắp xếp từ trước.
 - **Orders** — đơn hàng. **16 cột theo đúng thứ tự:** `Thời gian, Mã đơn hàng, Trạng thái, Email, Họ tên, Điện thoại, Hình thức nhận hàng, Địa chỉ, Tỉnh/Thành, Phương thức thanh toán, Ghi chú, Sản phẩm, Phí vận chuyển, Tổng tiền, Chi tiết SP (JSON), Hẹn ngày giờ nhận/giao hàng`. Header **tự sửa lại đúng chuẩn mỗi lần có đơn mới/tra cứu** (`ensureOrdersHeader_`) — kể cả khi Sheet đã có header cũ (8-10 cột, hoặc 15 cột từ trước khi có cột hẹn lịch) từ bản trước, không bị lệch cột nữa như lỗi đã gặp và sửa trong phiên làm việc trước. Cột cuối **"Hẹn ngày giờ nhận/giao hàng"** để trống lúc tạo đơn — chủ shop tự nhập tay (dạng chữ tự do, ví dụ "15/07 - 9h sáng") SAU KHI đã gọi điện xác nhận thật với khách; trang "Đơn hàng của tôi" tự hiện khung màu cam nếu cột này có giá trị, ẩn nếu để trống.
 - **Contacts** — yêu cầu tư vấn. Cột: `Thời gian, Họ tên, Điện thoại, Nội dung`.
 - **TuDien** — từ điển cách nói dân dã cho AI. Cột: `Cách nói dân dã, Thuật ngữ chuẩn`.
@@ -197,6 +204,12 @@ Tất cả các tab (trừ Products) đều **tự tạo + tự ghi header/tự 
   - "Hẹn ngày giờ nhận/giao hàng" là **chữ tự do, không ép định dạng** — Sheet không kiểm tra gì cả, gõ sao thì hiện y vậy cho khách xem trên trang "Đơn hàng của tôi" (vd "15/07 - 9h sáng" hay "Giao chiều thứ 5" đều được).
 - **CẦN CHẠY TAY 1 LẦN** hàm `setupOrdersStatusDropdown()` trong Apps Script editor (2026-07-22, chưa chắc người dùng đã chạy) — biến cột "Trạng thái" trong Sheet Orders thành ô chọn sẵn (dropdown 5 trạng thái) kèm tô màu: vàng (Chờ xác nhận), xanh lá (Đã xác nhận — đang chuẩn bị hàng), xanh dương (Đang giao), xanh lá đậm (Hoàn tất), đỏ (Đã huỷ). Cách chạy: mở Apps Script editor → chọn `setupOrdersStatusDropdown` ở dropdown cạnh nút Run → bấm Run (tương tự bước xin quyền `UrlFetchApp` ở trên, đây là thao tác tay 1 lần, không phải Deploy). Chạy lại bất cứ lúc nào cũng an toàn (tự dọn rule màu cũ, không bị trùng lặp) — cần chạy lại nếu sau này số đơn hàng vượt quá 500 dòng đã áp dropdown.
   - **LƯU Ý QUAN TRỌNG cho mọi hàm "chạy tay" tương lai:** Apps Script (bản gắn với Sheet, "container-bound") tự ẩn khỏi dropdown "chọn hàm để Chạy" mọi hàm có tên kết thúc bằng dấu `_` (coi là hàm nội bộ/private, giống quy ước ẩn khỏi menu Macro). Ban đầu hàm này đặt tên `setupOrdersStatusDropdown_` (có `_`) nên người dùng không tìm thấy trong dropdown dù code dán đúng 100% — đã đổi tên bỏ `_` để hiện ra được. Bất kỳ hàm mới nào cần người dùng tự chạy tay qua giao diện Apps Script (không phải chỉ gọi nội bộ từ hàm khác) đều PHẢI đặt tên KHÔNG kết thúc bằng `_`.
+- **Trang quản lý sản phẩm (`quan-ly-san-pham.html`) — ĐÃ VIẾT XONG CODE (2026-07-22) NHƯNG CHƯA ĐƯỢC TEST TRÊN SHEET/DRIVE THẬT** — việc cần làm ngay khi quay lại phiên sau:
+  - Nhắc người dùng deploy bản `Code.gs` mới nhất (có `ADMIN_EMAILS`, `handleAdminSaveProduct_`, `saveProductImagesToDrive_`...) như quy trình thường.
+  - **Rất có thể sẽ gặp lỗi "You do not have permission to call DriveApp..."** ở lần lưu sản phẩm có ảnh đầu tiên — vì đây là lần đầu code gọi tới `DriveApp` (scope Drive chưa từng được cấp quyền trước đó). Xử lý giống hệt cách đã làm với `UrlFetchApp`: vào Apps Script editor, chọn 1 hàm bất kỳ ở dropdown, bấm Run để trigger lại popup xin quyền (Review permissions → Advanced → Go to ... unsafe → Allow), rồi thử lưu sản phẩm lại.
+  - Cần test thật: đăng nhập bằng 1 trong 2 email `ADMIN_EMAILS`, thêm 1 sản phẩm mới có kèm ảnh, xác nhận: (1) sản phẩm xuất hiện đúng trong Sheet Products với đủ cột kể cả "Hình ảnh", (2) ảnh thật sự lưu vào thư mục Drive `PRODUCT_IMAGES_FOLDER_NAME` và xem được qua URL trả về, (3) sản phẩm mới hiện đúng ảnh thật (không phải icon SVG) trên `san-pham.html` và trang chi tiết, (4) gallery + bấm đổi ảnh ở trang chi tiết hoạt động khi có ≥2 ảnh, (5) sửa/xoá sản phẩm hoạt động đúng, (6) đăng nhập bằng 1 email KHÔNG có trong `ADMIN_EMAILS` thì bị chặn đúng như kỳ vọng.
+  - **Model 3D mới chỉ là 1 ô nhập link text** (`Model 3D` trong Sheet) — CHƯA làm: upload file 3D thật lên Drive, và CHƯA có bất kỳ chỗ nào trên site hiển thị/render model 3D. Đây là việc "để dành sau" theo đúng ý người dùng, chỉ mới chừa sẵn chỗ trong dữ liệu.
+  - Ảnh sản phẩm được resize bằng canvas phía trình duyệt (tối đa 1600px, JPEG chất lượng 0.8) trước khi gửi — nếu sau này thấy ảnh vẫn nặng/tải chậm, có thể hạ thêm kích thước hoặc chất lượng trong hàm `resizeImageFile_` ở `quan-ly-san-pham.html`.
 
 ---
 *Cập nhật lần cuối: 2026-07-22*

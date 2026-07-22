@@ -34,6 +34,16 @@ const SHEET_TUDIEN = "TuDien";
 const SHEET_FAQ = "FAQ";
 const SHEET_CHATLOG = "ChatLog";
 
+// Các tài khoản Google được phép thêm/sửa/xoá sản phẩm qua trang
+// quan-ly-san-pham.html. Ai đăng nhập bằng email KHÔNG có trong danh sách này
+// đều bị chặn — kể cả khi biết đường link trang quản lý (xem verifyFirebaseIdToken_
+// + isAdminEmail_, không tin email trình duyệt gửi lên, luôn xác thực lại với Google).
+const ADMIN_EMAILS = ["minhhien.bz@gmail.com", "kmuffin03@gmail.com"];
+
+// Tên thư mục Google Drive (cùng Drive với tài khoản đang chạy Apps Script) để
+// lưu ảnh sản phẩm khách/chủ shop tải lên qua trang quản lý — tự tạo nếu chưa có.
+const PRODUCT_IMAGES_FOLDER_NAME = "Website Minh Hiền - Ảnh sản phẩm";
+
 // Các trạng thái đơn hàng chuẩn hoá — dùng đúng các chuỗi này ở mọi nơi
 // (Sheet, email, trang "Đơn hàng của tôi") để so khớp chính xác.
 const STATUS_CHO_XAC_NHAN = "Chờ xác nhận";
@@ -69,6 +79,10 @@ function doPost(e) {
       return handleMyOrders_(data);
     } else if (data.type === "cancel_order") {
       return handleCancelOrder_(data);
+    } else if (data.type === "admin_save_product") {
+      return handleAdminSaveProduct_(data);
+    } else if (data.type === "admin_delete_product") {
+      return handleAdminDeleteProduct_(data);
     }
     return jsonOutput_({ success: true });
   } catch (err) {
@@ -539,6 +553,16 @@ function getProducts() {
       stock = isNaN(v) ? 999 : v;
     }
 
+    // Cột "Hình ảnh" lưu nhiều URL cách nhau bằng dấu phẩy (do trang quản lý
+    // sản phẩm tự ghi vào sau khi tải ảnh lên Drive) — tuỳ chọn, sản phẩm chưa
+    // có ảnh thật thì mảng rỗng, giao diện tự dùng icon SVG thay thế.
+    const imagesIdx = idx("Hình ảnh");
+    const images = imagesIdx !== -1
+      ? String(row[imagesIdx] || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean)
+      : [];
+    const model3dIdx = idx("Model 3D");
+    const model3d = model3dIdx !== -1 ? String(row[model3dIdx] || "").trim() : "";
+
     const idCell = row[idx("ID")];
     products.push({
       id: idCell ? String(idCell) : slugify_(name),
@@ -553,10 +577,166 @@ function getProducts() {
       specs: specs,
       stock: stock,
       // Cột "Tình trạng" là tuỳ chọn — nếu Sheet chưa có cột này thì mặc định Còn hàng
-      status: String(row[idx("Tình trạng")] || "Còn hàng").trim()
+      status: String(row[idx("Tình trạng")] || "Còn hàng").trim(),
+      images: images,
+      model3d: model3d
     });
   }
   return products;
+}
+
+/* =========================================================
+   QUẢN LÝ SẢN PHẨM (trang quan-ly-san-pham.html) — chỉ ADMIN_EMAILS
+   được phép, xác thực lại idToken với Google giống hệt cơ chế đơn hàng.
+   ========================================================= */
+
+function isAdminEmail_(email) {
+  const lower = String(email || "").trim().toLowerCase();
+  return ADMIN_EMAILS.some(function (e) { return e.toLowerCase() === lower; });
+}
+
+// Xác thực idToken + kiểm tra có trong ADMIN_EMAILS không. Trả về { email, error } —
+// error khác null nghĩa là chưa đăng nhập / không phải Google thật / không có quyền.
+function verifyAdmin_(idToken) {
+  const auth = verifyFirebaseIdToken_(idToken);
+  if (!auth.email) return { email: null, error: auth.error };
+  if (!isAdminEmail_(auth.email)) {
+    return { email: null, error: "Tài khoản " + auth.email + " không có quyền quản lý sản phẩm." };
+  }
+  return { email: auth.email, error: null };
+}
+
+// Các cột PHẢI có trong Sheet Products để trang quản lý ghi được đầy đủ dữ liệu.
+// Không đụng tới cột nào khác đã có sẵn (không overwrite header như Orders) —
+// chỉ tự thêm cột nào còn thiếu vào cuối, an toàn với Sheet Products đã có dữ
+// liệu/thứ tự cột tự sắp xếp từ trước.
+const PRODUCTS_REQUIRED_COLUMNS_ = ["ID", "Tên sản phẩm", "Danh mục", "Kích thước", "Giá (VNĐ)", "Đơn vị",
+  "Mô tả", "Nhãn nổi bật", "Icon", "Tình trạng", "Tồn kho", "Hình ảnh", "Model 3D",
+  "Thông số 1 - Tên", "Thông số 1 - Giá trị", "Thông số 2 - Tên", "Thông số 2 - Giá trị",
+  "Thông số 3 - Tên", "Thông số 3 - Giá trị", "Thông số 4 - Tên", "Thông số 4 - Giá trị",
+  "Thông số 5 - Tên", "Thông số 5 - Giá trị"];
+
+function ensureProductsColumns_(sheet) {
+  const lastCol = sheet.getLastColumn();
+  const currentHeader = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  const missing = PRODUCTS_REQUIRED_COLUMNS_.filter(function (h) { return currentHeader.indexOf(h) === -1; });
+  if (missing.length) {
+    sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+  }
+}
+
+function getOrCreateProductImagesFolder_() {
+  const folders = DriveApp.getFoldersByName(PRODUCT_IMAGES_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(PRODUCT_IMAGES_FOLDER_NAME);
+}
+
+// images: mảng { name, mimeType, base64 } gửi từ trang quản lý (đọc file bằng
+// FileReader phía trình duyệt) — lưu vào Drive, đặt quyền "ai có link cũng xem
+// được", trả về URL hiển thị trực tiếp được bằng thẻ <img>.
+function saveProductImagesToDrive_(images) {
+  if (!images || !images.length) return [];
+  const folder = getOrCreateProductImagesFolder_();
+  return images.map(function (img) {
+    const blob = Utilities.newBlob(Utilities.base64Decode(img.base64), img.mimeType, img.name);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w1000";
+  });
+}
+
+function handleAdminSaveProduct_(data) {
+  const admin = verifyAdmin_(data.idToken);
+  if (!admin.email) return jsonOutput_({ success: false, error: admin.error });
+
+  const sheet = getSheet_(SHEET_PRODUCTS);
+  ensureProductsColumns_(sheet);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idx = function (name) { return headers.indexOf(name); };
+
+  const rows = sheet.getDataRange().getValues();
+  let rowNum = -1; // số dòng thật trên Sheet (1-based), -1 = chưa tìm thấy (tạo mới)
+  let id = String(data.id || "").trim();
+  if (id) {
+    for (let r = 1; r < rows.length; r++) {
+      if (String(rows[r][idx("ID")]) === id) { rowNum = r + 1; break; }
+    }
+  }
+  if (!id) {
+    id = slugify_(data.name || "san-pham");
+    // Tránh trùng ID với sản phẩm đã có — thêm hậu tố số nếu cần
+    const existingIds = rows.slice(1).map(function (r) { return String(r[idx("ID")]); });
+    let uniqueId = id, n = 2;
+    while (existingIds.indexOf(uniqueId) !== -1) { uniqueId = id + "-" + n; n++; }
+    id = uniqueId;
+  }
+
+  const newImageUrls = saveProductImagesToDrive_(data.newImages || []);
+  const keptImageUrls = Array.isArray(data.keepImageUrls) ? data.keepImageUrls : [];
+  const allImages = keptImageUrls.concat(newImageUrls);
+
+  // Ghi lại đúng tên tiếng Việt đầy đủ (không phải slug "ong-thuy-luc") vào cột
+  // Danh mục — khớp quy ước cột này đang dùng từ trước (dễ đọc nếu chủ shop mở
+  // Sheet ra xem trực tiếp), getProducts() vẫn tự nhận diện đúng qua CATEGORY_MAP.
+  const CATEGORY_LABELS_ = { "ong-thuy-luc": "Ống thủy lực", "rac-co": "Rắc co & Đầu nối" };
+
+  const specs = data.specs || [];
+  const rowValues = {};
+  rowValues["ID"] = id;
+  rowValues["Tên sản phẩm"] = data.name || "";
+  rowValues["Danh mục"] = CATEGORY_LABELS_[data.category] || data.category || "";
+  rowValues["Kích thước"] = data.size || "";
+  rowValues["Giá (VNĐ)"] = Number(data.price) || 0;
+  rowValues["Đơn vị"] = data.unit || "cái";
+  rowValues["Mô tả"] = data.desc || "";
+  rowValues["Nhãn nổi bật"] = data.badge || "";
+  rowValues["Icon"] = data.icon || "";
+  rowValues["Tình trạng"] = data.status || "Còn hàng";
+  rowValues["Tồn kho"] = Number(data.stock) || 0;
+  rowValues["Hình ảnh"] = allImages.join(",");
+  rowValues["Model 3D"] = data.model3d || "";
+  for (let s = 0; s < 5; s++) {
+    rowValues["Thông số " + (s + 1) + " - Tên"] = (specs[s] && specs[s].name) || "";
+    rowValues["Thông số " + (s + 1) + " - Giá trị"] = (specs[s] && specs[s].value) || "";
+  }
+
+  if (rowNum === -1) {
+    const newRow = new Array(headers.length).fill("");
+    Object.keys(rowValues).forEach(function (key) {
+      const col = idx(key);
+      if (col !== -1) newRow[col] = rowValues[key];
+    });
+    sheet.appendRow(newRow);
+  } else {
+    Object.keys(rowValues).forEach(function (key) {
+      const col = idx(key);
+      if (col !== -1) sheet.getRange(rowNum, col + 1).setValue(rowValues[key]);
+    });
+  }
+
+  return jsonOutput_({ success: true, id: id, images: allImages });
+}
+
+function handleAdminDeleteProduct_(data) {
+  const admin = verifyAdmin_(data.idToken);
+  if (!admin.email) return jsonOutput_({ success: false, error: admin.error });
+
+  const id = String(data.id || "").trim();
+  if (!id) return jsonOutput_({ success: false, error: "Thiếu ID sản phẩm." });
+
+  const sheet = getSheet_(SHEET_PRODUCTS);
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const idCol = headers.indexOf("ID");
+  if (idCol === -1) return jsonOutput_({ success: false, error: "Sheet Products chưa có cột ID." });
+
+  for (let r = 1; r < rows.length; r++) {
+    if (String(rows[r][idCol]) === id) {
+      sheet.deleteRow(r + 1);
+      return jsonOutput_({ success: true });
+    }
+  }
+  return jsonOutput_({ success: false, error: "Không tìm thấy sản phẩm." });
 }
 
 function slugify_(text) {

@@ -408,6 +408,7 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
   aspect-ratio: 4/3; background: var(--bg); display: flex; align-items: center; justify-content: center;
   padding: 18px; position: relative;
 }
+.product-thumb img{ width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); }
 .product-thumb .badge{
   position: absolute; top: 12px; left: 12px; background: var(--accent); color: var(--white);
   font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
@@ -426,10 +427,20 @@ input, select, textarea{ font-family: inherit; font-size: 1rem; }
 /* ---------- Product detail ---------- */
 .pd-wrap{ display: grid; grid-template-columns: 1fr 1fr; gap: 46px; }
 @media (max-width: 900px){ .pd-wrap{ grid-template-columns: 1fr; } }
+.pd-gallery-wrap{ display: flex; flex-direction: column; gap: 12px; }
 .pd-gallery{
   background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: 30px; display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 4/3; overflow: hidden;
 }
+.pd-gallery img{ width: 100%; height: 100%; object-fit: contain; }
+.pd-gallery-thumbs{ display: flex; gap: 10px; flex-wrap: wrap; }
+.pd-gallery-thumb{
+  width: 64px; height: 64px; border-radius: var(--radius); overflow: hidden;
+  border: 2px solid var(--border); cursor: pointer; background: var(--bg); padding: 0;
+}
+.pd-gallery-thumb img{ width: 100%; height: 100%; object-fit: cover; }
+.pd-gallery-thumb.active{ border-color: var(--accent); }
 .pd-info .product-cat{ margin-bottom: 6px; }
 .pd-info h1{ font-size: 1.8rem; }
 .pd-price{ font-size: 2rem; font-weight: 800; color: var(--navy); margin: 12px 0; }
@@ -1130,6 +1141,39 @@ body.email-auth-open .email-auth-modal{ display: block; }
   display: inline-block; background: #e9edf1; color: var(--text-muted);
   font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
 }
+
+/* ---------- Trang quản lý sản phẩm (quan-ly-san-pham.html) ---------- */
+.admin-product-row{
+  display: flex; align-items: center; gap: 14px;
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 12px 16px; margin-bottom: 10px;
+}
+.admin-product-thumb{
+  width: 56px; height: 56px; border-radius: var(--radius); background: var(--bg);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; color: var(--navy);
+}
+.admin-product-thumb img{ width: 100%; height: 100%; object-fit: cover; }
+.admin-product-info{ flex: 1; min-width: 0; }
+.admin-product-name{ font-weight: 700; color: var(--navy-dark); }
+.admin-product-actions{ display: flex; gap: 8px; flex-shrink: 0; }
+
+.spec-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.spec-row input{
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg);
+}
+
+.admin-thumb-list{ display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.admin-thumb{
+  position: relative; width: 80px; height: 80px; border-radius: var(--radius);
+  overflow: hidden; border: 1px solid var(--border); background: var(--bg);
+}
+.admin-thumb img{ width: 100%; height: 100%; object-fit: cover; }
+.admin-thumb-remove{
+  position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(10,30,48,.75); color: var(--white); border: none; font-size: .75rem;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.admin-thumb-remove:hover{ background: var(--navy-dark); }
 
 /* ---------- Toast ---------- */
 .toast{

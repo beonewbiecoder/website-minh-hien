@@ -146,9 +146,17 @@ function renderProductDetail(){
       <a href="index.html">Trang chủ</a> / <a href="san-pham.html">Sản phẩm</a> / <a href="san-pham.html?cat=${product.category}">${catInfo ? catInfo.name : ""}</a> / ${product.name}
     </div>
     <div class="pd-wrap">
-      <div class="pd-gallery" style="color:var(--navy)">
-        ${product.badge ? `<span class="badge" style="position:absolute;">${product.badge}</span>` : ""}
-        ${productIcon(product.icon, 220)}
+      <div class="pd-gallery-wrap">
+        <div class="pd-gallery" style="color:var(--navy)">
+          ${product.badge ? `<span class="badge" style="position:absolute;">${product.badge}</span>` : ""}
+          ${product.images && product.images.length
+            ? `<img src="${product.images[0]}" alt="${product.name}" id="pd-main-img">`
+            : productIcon(product.icon, 220)}
+        </div>
+        ${product.images && product.images.length > 1 ? `
+        <div class="pd-gallery-thumbs">
+          ${product.images.map((url, i) => `<button type="button" class="pd-gallery-thumb ${i === 0 ? "active" : ""}" data-img="${url}"><img src="${url}" alt=""></button>`).join("")}
+        </div>` : ""}
       </div>
       <div class="pd-info">
         <span class="product-cat">${catInfo ? catInfo.name : ""} — ${product.size}</span>
@@ -182,6 +190,17 @@ function renderProductDetail(){
       location.href = "san-pham.html";
     }
   });
+
+  if(product.images && product.images.length > 1){
+    const mainImg = document.getElementById("pd-main-img");
+    document.querySelectorAll(".pd-gallery-thumb").forEach(thumb => {
+      thumb.addEventListener("click", () => {
+        mainImg.src = thumb.dataset.img;
+        document.querySelectorAll(".pd-gallery-thumb").forEach(t => t.classList.remove("active"));
+        thumb.classList.add("active");
+      });
+    });
+  }
 
   if(!outOfStock){
     const qtyInput = document.getElementById("qty-input");

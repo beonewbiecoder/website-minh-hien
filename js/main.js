@@ -316,11 +316,16 @@ function productCardHTML(p){
   const stock = getProductStock(p);
   const outOfStock = stock <= 0;
   const lowStock = !outOfStock && stock <= 5;
+  // Có ảnh thật (nhập qua trang quản lý sản phẩm) thì ưu tiên hiện ảnh đầu tiên,
+  // chưa có ảnh thì tạm dùng icon SVG minh hoạ như cũ.
+  const thumbContent = p.images && p.images.length
+    ? `<img src="${p.images[0]}" alt="${p.name}" loading="lazy">`
+    : productIcon(p.icon, 72);
   return `
     <a href="san-pham-chi-tiet.html?id=${p.id}" class="product-card" data-id="${p.id}" data-cat="${p.category}" data-name="${p.name.toLowerCase()}">
       <div class="product-thumb">
         ${p.badge ? `<span class="badge">${p.badge}</span>` : ""}
-        ${productIcon(p.icon, 72)}
+        ${thumbContent}
       </div>
       <div class="product-body">
         <span class="product-cat">${p.size}</span>
