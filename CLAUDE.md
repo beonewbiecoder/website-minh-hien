@@ -10,8 +10,8 @@
   - Hosting tĩnh: **GitHub Pages** — repo `beonewbiecoder/website-minh-hien`, nhánh `master`, live tại `https://beonewbiecoder.github.io/website-minh-hien/`
   - Dữ liệu + backend logic: **Google Sheet + Google Apps Script** (Web App), gọi thêm **Gemini API** cho chat AI
   - **Firebase Authentication** (project `chmh-e22e1`, miễn phí gói Spark) — CHỈ dùng để xác định danh tính khách đăng nhập (Google + Email/mật khẩu), KHÔNG dùng Firestore hay database nào khác của Firebase
-  - **GitHub Actions** (miễn phí trên repo public) — tự build trang bài viết từ Markdown, xem mục 2
-  - Không có build step cho site chính, không npm để chạy local — HTML/CSS/JS thuần, mở file là chạy được. Riêng hệ thống bài viết CÓ 1 bước build (Node) nhưng chạy hoàn toàn trên GitHub Actions, người dùng không cần cài gì trên máy.
+  - **GitHub Actions** (miễn phí trên repo public) — tự build trang bài viết từ Markdown (xem mục 2) VÀ tự build `js/products-data.js` (dữ liệu sản phẩm tĩnh, xem mục 2 + mục 5 "Đồng bộ sản phẩm") — cả 2 đều theo cùng 1 triết lý: KHÔNG gọi sống Apps Script mỗi lần khách vào xem (chậm 1-3 giây), thay vào đó "build" sẵn thành file tĩnh, phát nhanh qua CDN GitHub Pages.
+  - Không có build step cho site chính, không npm để chạy local — HTML/CSS/JS thuần, mở file là chạy được. Riêng hệ thống bài viết + dữ liệu sản phẩm CÓ bước build (Node) nhưng chạy hoàn toàn trên GitHub Actions, người dùng không cần cài gì trên máy.
 - Lý do chọn hạ tầng này: project đang ở giai đoạn thử nghiệm, chưa tạo doanh thu ổn định, cần giữ chi phí vận hành = 0 đồng.
 
 ## 2. Cấu trúc file/trang hiện có
@@ -33,14 +33,15 @@
 | `bai-viet/*.html` | Trang chi tiết từng bài viết — **tự động sinh ra**, KHÔNG sửa tay (xem phần build bên dưới) |
 | `quan-ly-san-pham.html` | **Trang quản lý sản phẩm nội bộ** (2026-07-22) — KHÔNG có trong menu/nav, không ai vô tình bấm trúng. Chỉ 2 tài khoản trong `ADMIN_EMAILS` (`Code.gs`) mới thêm/sửa/xoá được sản phẩm — xem chi tiết đầy đủ ở mục 5. |
 
-Tất cả các trang đều load chung `js/config.js` → `js/data.js` → `js/cart.js` → `js/auth.js` → `js/main.js`, cộng thêm SDK Firebase (`firebase-app-compat.js`, `firebase-auth-compat.js`) qua CDN trước `config.js`.
+Tất cả các trang đều load chung `js/config.js` → `js/data.js` → **`js/products-data.js`** → `js/cart.js` → `js/auth.js` → `js/main.js`, cộng thêm SDK Firebase (`firebase-app-compat.js`, `firebase-auth-compat.js`) qua CDN trước `config.js`.
 
 **JS (`js/`):**
 
 | File | Chức năng |
 |---|---|
 | `config.js` | Toàn bộ hằng số cấu hình dùng chung site (xem mục 4) |
-| `data.js` | `CATEGORIES`, `PRODUCTS` (17 sản phẩm mẫu, có `stock`) + `refreshProductsFromSheet()` đồng bộ từ Sheet |
+| `data.js` | `CATEGORIES`, `PRODUCTS` (17 sản phẩm mẫu ban đầu — bị `products-data.js` nạp đè ngay sau đó bằng dữ liệu thật) |
+| `products-data.js` | **Tự động sinh ra** bởi `scripts/build-products.js` (2026-07-22) — nạp đè `PRODUCTS` bằng dữ liệu THẬT lấy từ Sheet Products tại thời điểm build gần nhất. Nạp bằng thẻ `<script>` bình thường (đồng bộ, không phải fetch) nên có ngay lập tức khi trang tải, không còn độ trễ/race condition như bản cũ dùng `refreshProductsFromSheet()` (đã bỏ hẳn). KHÔNG sửa tay — xem mục 5 "Đồng bộ sản phẩm". |
 | `cart.js` | Giỏ hàng localStorage: `addToCart`/`updateCartQty` (chặn vượt tồn kho, trả về `{capped, stock}`), `cartDetailed()`, `showToast()`, `generateOrderCode()`, `buildVietQrUrl()`, `getShippingFee()` |
 | `auth.js` | Đăng nhập Google + Email/mật khẩu qua Firebase Auth. Render nút tài khoản (`renderAccountButton`, 2 slot: `#account-slot` desktop + `#account-slot-mobile` trong menu mobile), khung modal đăng nhập email dùng chung toàn site (`renderEmailAuthModal_`/`openEmailAuthModal`), `getCurrentIdToken()` để gọi Apps Script xác thực |
 | `main.js` | File lớn nhất — icon SVG sản phẩm, nav mobile (có nút X đóng menu), thanh liên hệ nhanh (mobile bar + desktop fab, chặn bấm Zalo liên tục `guardZaloClick_`), widget chat AI, card sản phẩm (hiện tồn kho), listing/filter, sticky toolbar, redirect tìm kiếm trang chủ, render thẻ bài viết (`renderArticleCards`, `initArticleListing`) |
@@ -56,7 +57,14 @@ Tất cả các trang đều load chung `js/config.js` → `js/data.js` → `js/
 | `bai-viet/*.md` | Nguồn nội dung bài viết — frontmatter (`title`, `description`, `date`, `image`, `slug`) + nội dung Markdown, heading bắt đầu từ `##` (H1 do template tự thêm từ `title`) |
 | `scripts/build-articles.js` | Build script Node — đọc `.md`, parse frontmatter, convert Markdown → HTML, tự nhận diện Q&A để sinh JSON-LD `FAQPage`, sinh `bai-viet/<slug>.html` + `js/articles-data.js`. Header/nav trong template này giống hệt các trang khác — sửa nav ở đây thì nhớ sửa cả 11 trang kia (xem mục 3). |
 | `.github/workflows/build-articles.yml` | GitHub Actions — tự chạy build script khi push thay đổi vào `bai-viet/**.md`, `scripts/build-articles.js`, hoặc `package.json`; tự commit lại `bai-viet/*.html` + `js/articles-data.js` nếu có thay đổi (bot `github-actions[bot]`) |
-| `package.json` | Chỉ dùng cho CI (khai báo dependency `marked` để build) — không liên quan gì đến việc chạy site |
+| `package.json` | Chỉ dùng cho CI (khai báo dependency `marked` để build bài viết) — không liên quan gì đến việc chạy site |
+
+**Hệ thống dữ liệu sản phẩm tĩnh (2026-07-22, build từ Sheet, xem thêm mục 5 "Đồng bộ sản phẩm"):**
+
+| File | Chức năng |
+|---|---|
+| `scripts/build-products.js` | Build script Node — đọc `APPS_SCRIPT_URL` trực tiếp từ `js/config.js` (không phải bí mật), gọi `?action=products`, ghi kết quả thành `js/products-data.js`. KHÔNG cần dependency npm nào (dùng `fetch` có sẵn của Node 20). |
+| `.github/workflows/build-products.yml` | GitHub Actions — 2 cách kích hoạt: (1) `workflow_dispatch` do `Code.gs` tự gọi (`triggerProductsRebuild_`) ngay khi sản phẩm/tồn kho thay đổi, (2) lịch chạy định kỳ mỗi 30 phút làm lưới an toàn. Tự commit lại `js/products-data.js` nếu có thay đổi (bot `github-actions[bot]`). |
 
 **Backend (`google-apps-script/`):**
 
@@ -127,6 +135,14 @@ ADMIN_EMAILS     = ["minhhien.bz@gmail.com", "kmuffin03@gmail.com"]   // 2026-07
                     qua verifyAdmin_() (Identity Toolkit), KHÔNG tin email trình duyệt gửi lên
 PRODUCT_IMAGES_FOLDER_NAME = "Website Minh Hiền - Ảnh sản phẩm"   // tên thư mục Drive tự tạo
                     để lưu ảnh sản phẩm tải lên qua trang quản lý
+GITHUB_OWNER = "beonewbiecoder", GITHUB_REPO = "website-minh-hien",
+GITHUB_PRODUCTS_WORKFLOW = "build-products.yml"   // dùng để tự gọi GitHub Actions
+                    build lại dữ liệu sản phẩm tĩnh (xem mục 2 + mục 5)
+GITHUB_TOKEN     = **CHƯA CHẮC ĐÃ CẤU HÌNH** — Script Property (Project Settings),
+                    Personal Access Token của GitHub, quyền tối thiểu "Actions: write"
+                    + "Contents: write" trên đúng repo website-minh-hien. Thiếu thì
+                    triggerProductsRebuild_() tự bỏ qua (không lỗi), vẫn còn lịch
+                    chạy định kỳ 30 phút làm lưới an toàn — xem mục 8.
 ```
 
 **Firebase project đã cấu hình xong (project `chmh-e22e1`):**
@@ -141,7 +157,7 @@ PRODUCT_IMAGES_FOLDER_NAME = "Website Minh Hiền - Ảnh sản phẩm"   // tê
 | Tính năng | Trạng thái | File chính | Cơ chế |
 |---|---|---|---|
 | Giỏ hàng | ✅ Hoàn thành | `js/cart.js` | localStorage, chặn thêm vượt tồn kho |
-| Đồng bộ sản phẩm từ Sheet | ✅ Hoàn thành | `js/data.js` (`refreshProductsFromSheet`) | Fetch `APPS_SCRIPT_URL?action=products`, ghi đè `PRODUCTS` (gồm cả `stock`), bắn event `products-updated` |
+| **Đồng bộ sản phẩm — build tĩnh (2026-07-22)** | ✅ Hoàn thành, **chưa test đầu-cuối** (xem mục 8) | `scripts/build-products.js`, `.github/workflows/build-products.yml`, `js/products-data.js`, `Code.gs` (`triggerProductsRebuild_`) | **Đã đổi kiến trúc**, KHÔNG còn fetch sống từ trình duyệt nữa (bản cũ `refreshProductsFromSheet()` trong `data.js` đã bị xoá hẳn — gây race condition, báo nhầm "không tìm thấy sản phẩm"/"giỏ hàng trống" khi sản phẩm mới thêm chưa kịp đồng bộ, có lúc còn làm kẹt cứng trang thanh toán). Giờ: GitHub Actions build sẵn `js/products-data.js` (nạp bằng thẻ `<script>` bình thường, đồng bộ, không có độ trễ) mỗi khi Apps Script tự gọi `workflow_dispatch` (ngay sau khi admin lưu/xoá sản phẩm, hoặc có đơn hàng mới/huỷ làm đổi tồn kho — xem `adjustStockForItems_`/`handleAdminSaveProduct_`/`handleAdminDeleteProduct_`), cộng thêm lịch chạy định kỳ 30 phút làm lưới an toàn. Đánh đổi: sản phẩm/tồn kho mới đổi cần khoảng vài chục giây tới ~1 phút mới lên site (thời gian Action chạy) — CHỦ SHOP ĐÃ ĐỒNG Ý đánh đổi này (quy mô vừa/nhỏ, chưa cần tức thời). |
 | **Thanh toán 1 trang (single-page checkout)** | ✅ Hoàn thành | `thanh-toan.html` | Thông tin nhận hàng (giao hàng/tới lấy tại cửa hàng, ẩn ô địa chỉ khi tới lấy) → tóm tắt đơn dạng accordion → phương thức thanh toán COD/chuyển khoản. Nút "Xác nhận đặt hàng" cố định đáy màn hình (`.checkout-sticky-bar`), tự khoá + hiện spinner khi đang gửi (chặn đặt trùng), chỉ mở lại khi lỗi mạng. |
 | **Banner mời đăng nhập ở checkout** | ✅ Hoàn thành | `thanh-toan.html` (đầu `renderCheckout`) | Hiện đầu trang thanh toán, có thể bỏ qua — không bắt buộc để đặt hàng. Đổi thành xác nhận màu xanh nếu đã đăng nhập. |
 | **Phí vận chuyển theo khu vực** | ✅ Hoàn thành | `js/cart.js` (`getShippingFee`), `js/config.js` (`SHIPPING_FEES`/`SHIPPING_ZONES`) | 3 mức cố định tạm (nội thành/lân cận/tỉnh xa) theo dropdown tỉnh/thành, cộng đúng vào tổng tiền + số tiền QR trước khi khách xác nhận. Ẩn khi chọn "tới lấy tại cửa hàng". |
@@ -206,7 +222,9 @@ Tất cả các tab (trừ Products) đều **tự tạo + tự ghi header/tự 
 - **CẦN CHẠY TAY 1 LẦN** hàm `setupOrdersStatusDropdown()` trong Apps Script editor (2026-07-22, chưa chắc người dùng đã chạy) — biến cột "Trạng thái" trong Sheet Orders thành ô chọn sẵn (dropdown 5 trạng thái) kèm tô màu: vàng (Chờ xác nhận), xanh lá (Đã xác nhận — đang chuẩn bị hàng), xanh dương (Đang giao), xanh lá đậm (Hoàn tất), đỏ (Đã huỷ). Cách chạy: mở Apps Script editor → chọn `setupOrdersStatusDropdown` ở dropdown cạnh nút Run → bấm Run (tương tự bước xin quyền `UrlFetchApp` ở trên, đây là thao tác tay 1 lần, không phải Deploy). Chạy lại bất cứ lúc nào cũng an toàn (tự dọn rule màu cũ, không bị trùng lặp) — cần chạy lại nếu sau này số đơn hàng vượt quá 500 dòng đã áp dropdown.
   - **LƯU Ý QUAN TRỌNG cho mọi hàm "chạy tay" tương lai:** Apps Script (bản gắn với Sheet, "container-bound") tự ẩn khỏi dropdown "chọn hàm để Chạy" mọi hàm có tên kết thúc bằng dấu `_` (coi là hàm nội bộ/private, giống quy ước ẩn khỏi menu Macro). Ban đầu hàm này đặt tên `setupOrdersStatusDropdown_` (có `_`) nên người dùng không tìm thấy trong dropdown dù code dán đúng 100% — đã đổi tên bỏ `_` để hiện ra được. Bất kỳ hàm mới nào cần người dùng tự chạy tay qua giao diện Apps Script (không phải chỉ gọi nội bộ từ hàm khác) đều PHẢI đặt tên KHÔNG kết thúc bằng `_`.
 - **Trang quản lý sản phẩm (`quan-ly-san-pham.html`) — ĐÃ TEST THẬT THÀNH CÔNG (2026-07-22)**: đăng nhập bằng `ADMIN_EMAILS`, thêm sản phẩm kèm ảnh, ảnh lên đúng Drive + Sheet, hiện đúng trên `san-pham.html`/trang chi tiết. Gặp đúng lỗi "You do not have permission to call DriveApp..." ở lần đầu như dự đoán (chưa từng cấp quyền Drive) — đã xử lý bằng hàm `testDriveAccess()` (KHÔNG có dấu `_`, hiện trong dropdown Run) chạy tay 1 lần để trigger popup xin quyền, sau đó hoạt động bình thường.
-  - **ĐÃ SỬA (2026-07-22): lỗi báo nhầm "Không tìm thấy sản phẩm"/"Giỏ hàng đang trống" khi sản phẩm mới thêm chưa kịp đồng bộ** — gốc rễ do `PRODUCTS` tải bất đồng bộ từ Sheet (`refreshProductsFromSheet` trong `js/data.js`), các trang tra cứu theo ID (chi tiết sản phẩm/giỏ hàng/thanh toán) trước đó render ngay bằng dữ liệu mẫu cũ nên báo sai trong lúc chờ. **Nghiêm trọng nhất: `thanh-toan.html` không hề tự vẽ lại khi dữ liệu về xong, bị KẸT CỨNG vĩnh viễn ở màn "giỏ hàng trống", chặn đứng việc đặt hàng** — đã sửa bằng cách thêm cờ `productsSettled` + promise `productsReady` trong `data.js`; 3 trang trên giờ hiện "Đang tải..." trong lúc chờ rồi tự vẽ lại đúng (kể cả khi tải lỗi cũng không bị kẹt). Đã test xong nhưng nhắc lại nếu tái phát: KHÔNG thể loại bỏ hoàn toàn độ trễ 1-3 giây của fetch tới Apps Script (giới hạn vốn có của hạ tầng Google Sheets miễn phí) — chỉ loại bỏ được việc hiện SAI trạng thái trong lúc chờ.
+  - **Lỗi báo nhầm "Không tìm thấy sản phẩm"/"Giỏ hàng đang trống" (kể cả kẹt cứng trang thanh toán) khi sản phẩm mới thêm chưa kịp đồng bộ — ĐÃ SỬA TẬN GỐC (2026-07-22)** bằng cách đổi hẳn kiến trúc sang build tĩnh, xem dòng "Đồng bộ sản phẩm — build tĩnh" ở mục 5. Không còn fetch bất đồng bộ nữa nên không còn race condition — mọi trang giờ có `PRODUCTS` đúng ngay từ đầu, không cần "Đang tải..." hay lắng nghe sự kiện gì cả (đã dọn sạch code tạm `productsSettled`/`productsReady`/`products-updated` của lần sửa trước đó trong cùng ngày).
+  - **CẦN LÀM: tạo GitHub Personal Access Token và điền vào Script Property `GITHUB_TOKEN`** — chưa chắc người dùng đã làm bước này, nếu thiếu thì `triggerProductsRebuild_()` tự bỏ qua (không lỗi gì cả, có log ở Apps Script Executions), site vẫn chạy đúng nhưng sản phẩm mới chỉ cập nhật theo lịch chạy định kỳ 30 phút thay vì gần như ngay lập tức. Cách tạo: GitHub → bấm avatar góc phải → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token → chọn đúng repo `website-minh-hien` → Repository permissions: "Actions" = Read and write, "Contents" = Read and write → Generate → copy token → dán vào Apps Script Project Settings → Script Properties → thêm key `GITHUB_TOKEN`.
+  - **CẦN TEST ĐẦU-CUỐI (chưa test được vì cần GITHUB_TOKEN thật)**: sau khi có token, thử thêm 1 sản phẩm mới ở trang quản lý → vào tab Actions của repo trên GitHub xem workflow "Build dữ liệu sản phẩm từ Google Sheet" có tự chạy không → chờ chạy xong (thường dưới 1 phút) → F5 trang `san-pham.html` xem sản phẩm mới đã có ngay chưa (không cần đợi gì thêm, không còn "Đang tải...").
   - Giỏ hàng (`gio-hang.html`) giờ hiện ảnh thật của sản phẩm thay vì luôn icon SVG (nếu sản phẩm đã có ảnh).
   - **Model 3D mới chỉ là 1 ô nhập link text** (`Model 3D` trong Sheet) — CHƯA làm: upload file 3D thật lên Drive, và CHƯA có bất kỳ chỗ nào trên site hiển thị/render model 3D. Đây là việc "để dành sau" theo đúng ý người dùng, chỉ mới chừa sẵn chỗ trong dữ liệu.
   - Ảnh sản phẩm được resize bằng canvas phía trình duyệt (tối đa 1600px, JPEG chất lượng 0.8) trước khi gửi — nếu sau này thấy ảnh vẫn nặng/tải chậm, có thể hạ thêm kích thước hoặc chất lượng trong hàm `resizeImageFile_` ở `quan-ly-san-pham.html`.
