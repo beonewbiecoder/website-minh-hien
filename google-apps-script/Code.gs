@@ -102,7 +102,8 @@ function getSheet_(name) {
 const ORDERS_HEADERS_ = [
   "Thời gian", "Mã đơn hàng", "Trạng thái", "Email", "Họ tên", "Điện thoại",
   "Hình thức nhận hàng", "Địa chỉ", "Tỉnh/Thành", "Phương thức thanh toán",
-  "Ghi chú", "Sản phẩm", "Phí vận chuyển", "Tổng tiền", "Chi tiết SP (JSON)"
+  "Ghi chú", "Sản phẩm", "Phí vận chuyển", "Tổng tiền", "Chi tiết SP (JSON)",
+  "Hẹn ngày giờ nhận/giao hàng"
 ];
 
 // Sheet Orders có thể đang mang header CŨ (từ trước khi có tính năng đăng
@@ -139,7 +140,8 @@ function saveOrder(data) {
   sheet.appendRow([
     new Date(), data.orderCode || "", status, data.email || "", data.name || "", data.phone || "",
     fulfillmentLabel, data.address || "", data.zone || "", paymentLabel,
-    data.note || "", itemsText, data.shippingFee || 0, data.total || 0, itemsJson
+    data.note || "", itemsText, data.shippingFee || 0, data.total || 0, itemsJson,
+    "" // Hẹn ngày giờ nhận/giao hàng — để trống, chủ shop tự nhập tay sau khi đã xác nhận đơn
   ]);
 
   // Trừ tồn kho ngay khi tạo đơn (kể cả COD lẫn chuyển khoản) — tránh 2 khách
@@ -272,7 +274,9 @@ function handleMyOrders_(data) {
       date: formatDateVN_(row[idx("Thời gian")]),
       status: row[idx("Trạng thái")],
       total: Number(row[idx("Tổng tiền")]) || 0,
-      items: items
+      items: items,
+      fulfillment: row[idx("Hình thức nhận hàng")] || "",
+      schedule: row[idx("Hẹn ngày giờ nhận/giao hàng")] || ""
     });
   }
   orders.reverse(); // mới nhất trước

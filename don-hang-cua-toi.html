@@ -154,6 +154,14 @@ function orderCardHTML(o){
     ? `<button type="button" class="btn btn-outline btn-sm" data-cancel="${o.orderCode}">Huỷ đơn hàng này</button>`
     : (info.showHelp ? `<span class="muted" style="font-size:.85rem;">Liên hệ hotline nếu cần hỗ trợ thêm</span>` : "");
 
+  // Chủ shop tự tay nhập ngày/giờ hẹn (giao hàng hoặc tới lấy tại cửa hàng)
+  // vào cột "Hẹn ngày giờ nhận/giao hàng" trong Sheet sau khi đã xác nhận đơn —
+  // chỉ hiện khi đã có, đơn mới đặt/chưa xác nhận thì chưa có gì để hiện.
+  const scheduleLabel = o.fulfillment === "Tới lấy tại cửa hàng" ? "Hẹn giờ tới lấy tại cửa hàng" : "Hẹn ngày giờ giao hàng";
+  const scheduleHTML = o.schedule
+    ? `<div class="order-card-schedule"><b>${scheduleLabel}:</b> ${o.schedule}</div>`
+    : "";
+
   return `
     <div class="order-card">
       <div class="order-card-head">
@@ -164,6 +172,7 @@ function orderCardHTML(o){
         <span class="status-badge ${info.cls}">${o.status}</span>
       </div>
       <div class="order-card-items">${itemsHTML}</div>
+      ${scheduleHTML}
       <div class="order-card-foot">
         <div class="order-card-total">${formatVND(o.total)}</div>
         ${footRight}

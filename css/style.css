@@ -1111,6 +1111,12 @@ body.email-auth-open .email-auth-modal{ display: block; }
 .order-card-items div span:last-child{ flex-shrink: 0; white-space: nowrap; }
 .order-card-foot{ display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .order-card-total{ font-weight: 800; font-size: 1.05rem; color: var(--navy-dark); }
+.order-card-schedule{
+  background: rgba(224,123,40,.1); border: 1px solid rgba(224,123,40,.35);
+  border-radius: var(--radius); padding: 10px 14px; font-size: .88rem;
+  color: var(--navy-dark); margin-top: 10px;
+}
+.order-card-schedule b{ color: var(--accent-dark); }
 
 /* ---------- Spinner nút submit ---------- */
 .btn-spinner{
