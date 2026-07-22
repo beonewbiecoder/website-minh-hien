@@ -394,7 +394,7 @@ const PRODUCTS_DATA_ = [
     "size": "12 li",
     "price": 10000,
     "unit": "cái",
-    "desc": "Không biết mô tả gì luôn=))))",
+    "desc": "Không biết mô tả gì luôn=)))) hiện tại đang sửa thử xem nó đã xuất hiện nhanh hơn chưa",
     "badge": "Bán chạy",
     "icon": "hose",
     "specs": {
